@@ -44,11 +44,6 @@ class Model_Baseline:
         if not os.path.exists(self.save_path):
             os.makedirs(self.save_path)
 
-    # src/data/FollowupQG
-    # selet the train.json (if split = train)
-    # it contains a list of dictionaries
-    # take the 'queestion' key, and use this as the prompt to the model
-
     def prompt(self, test_example):
         question = test_example["question"].strip()
         return question
