@@ -146,8 +146,8 @@ class Model_Baseline:
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_path", type=str, default="./src/data")
-    parser.add_argument("--dataset_name", type=str) # default is FollowupQG
-    parser.add_argument("--split", type=str)
+    parser.add_argument("--dataset_name", type=str,  default="FollowupQG") 
+    parser.add_argument("--split", type=str, default="train")
     parser.add_argument("--save_path", type=str, default="./src/outputs/data")
     
     parser.add_argument("--api_key", type=str)
