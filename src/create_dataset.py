@@ -15,7 +15,6 @@ class Model_Baseline:
         self.split = args.split
         self.model_name = args.model_name
         self.save_path = os.path.join(args.save_path, args.dataset_name)
-        self.demonstration_path = args.demonstration_path
         self.mode = args.mode
         self.api_key = args.api_key
       
@@ -150,10 +149,8 @@ def parse_args():
     parser.add_argument("--data_path", type=str, default="./src/data")
     parser.add_argument("--dataset_name", type=str) # default is FollowupQG
     parser.add_argument("--split", type=str)
-    parser.add_argument("--save_path", type=str, default="./src/outputs/baselines")
-    parser.add_argument(
-        "--demonstration_path", type=str, default="./src/models/prompts"
-    )
+    parser.add_argument("--save_path", type=str, default="./src/outputs/data")
+    
     parser.add_argument("--api_key", type=str)
     parser.add_argument("--model_name", type=str)
     parser.add_argument("--framework", type=str, default="openai")
