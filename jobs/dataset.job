@@ -1,1 +1,21 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=18
+#SBATCH --gpus=1
+#SBATCH --job-name=TrainAAE
+#SBATCH --ntasks=1
+#SBATCH --time=01:00:00
+#SBATCH --output=slurm_output_%A.out
+
+module purg
+module load 2022
+module load Anaconda3/2022.05
+
+# Activate your environment
+source activate dl2023
+# Run your code
+
+srun python -u create_dataset.py
 
