@@ -12,4 +12,5 @@ python ./src/create_dataset.py \
     --model_name "Model Name" \
     --dataset_name "FollowupQG" \
     --split train \
+    --framework "huggingface" \
     --max_new_tokens 16 
