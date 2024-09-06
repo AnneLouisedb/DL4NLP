@@ -65,16 +65,13 @@ class Model_Baseline:
         # load raw dataset
         raw_dataset = self.load_raw_dataset(self.split)
         print(f"Loaded {len(raw_dataset)} examples from {self.split} split.")
-
-        # load in-context examples
-        in_context_examples = self.load_in_context_examples()
-
+        
         outputs = []
         for example in tqdm(raw_dataset):
             question = example["question"]
 
             # create prompt
-            full_prompt = self.prompt_creator(in_context_examples, example)
+            full_prompt = self.prompt_creator(example)
             output = self.model.generate(full_prompt)
             if self.args.stop_words:
                 output = output[: -len(self.args.stop_words)]
@@ -97,9 +94,7 @@ class Model_Baseline:
         raw_dataset = self.load_raw_dataset(self.split)
         print(f"Loaded {len(raw_dataset)} examples from {self.split} split.")
 
-        # load in-context examples
-        in_context_examples = self.load_in_context_examples()
-
+        
         outputs = []
         # split dataset into chunks
         dataset_chunks = [
@@ -109,7 +104,7 @@ class Model_Baseline:
         for chunk in tqdm(dataset_chunks):
             # create prompt
             full_prompts = [
-                self.prompt_creator(in_context_examples, example) for example in chunk
+                self.prompt_creator(example) for example in chunk
             ]
             try:
                 batch_outputs = self.model.batch_generate(full_prompts)
