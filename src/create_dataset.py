@@ -15,7 +15,6 @@ class Model_Baseline:
         self.split = args.split
         self.model_name = args.model_name
         self.save_path = os.path.join(args.save_path, args.dataset_name)
-        self.mode = args.mode
         self.api_key = args.api_key
       
         login(token=args.api_key)
@@ -155,7 +154,6 @@ def parse_args():
     parser.add_argument("--model_name", type=str)
     parser.add_argument("--framework", type=str, default="openai")
     parser.add_argument("--stop_words", type=str, default="------\n")
-    parser.add_argument("--mode", type=str)
     parser.add_argument("--max_new_tokens", type=int, default=1024)
     parser.add_argument("--is_GGUF", action="store_true", default=False)
     parser.add_argument("--Q_type", type=str)
