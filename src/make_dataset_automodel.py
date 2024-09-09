@@ -36,7 +36,7 @@ model_id = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 
 # Model ID from Hugging Face Hub
 model_id = "meta-llama/Meta-Llama-3.1-8B-Instruct"
-access_token="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"
+access_token="your_token_here"
 
 # Load tokenizer and model from Hugging Face Hub (requires access token)
 tokenizer = AutoTokenizer.from_pretrained(model_id, token=access_token)
