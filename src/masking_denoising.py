@@ -1,5 +1,9 @@
 import random
+import json
+import os
+from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM
+
 
 def mask_tokens(text, alpha, tokenizer, mask_token="[MASK]"):
     """
@@ -51,7 +55,53 @@ def fill_masked_tokens(masked_text, model, tokenizer):
     
     return filled_text
 
-# Example usage:
+def process_data_with_masking(model_name, split, alpha, model, tokenizer):
+    """
+    Process data from a JSON file, apply masking and denoising to specific fields,
+    and save the denoised results back to the dictionary.
+    
+    :param model_name: Name of the model folder
+    :param split: Split of the data (e.g., 'train', 'valid', 'test')
+    :param alpha: Masking ratio
+    :param model: Language model to use for filling masked tokens
+    :param tokenizer: Tokenizer associated with the model
+    """
+    # Construct the file path
+    file_path = f'data/{model_name}/{split}.json'
+    
+    # Check if the file exists
+    if not os.path.exists(file_path):
+        print(f"File not found: {file_path}")
+        return
+    
+    # Load the JSON data
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+    
+    # Process each item in the data
+    for item in tqdm(data, desc=f"Processing {split} data"):
+        for key in ['answer-llm', 'follow-up-llm']:
+            if key in item:
+                # Apply masking
+                masked_text, _ = mask_tokens(item[key], alpha, tokenizer)
+                
+                # Apply denoising
+                denoised_text = fill_masked_tokens(masked_text, model, tokenizer)
+                
+                # Save the result back to the dictionary
+                item[f"{key}_alpha_{alpha}"] = denoised_text
+    
+    # Save the updated data back to the file
+    output_file_path = f'data/{model_name}/{split}.json'
+    with open(output_file_path, 'w') as file:
+        json.dump(data, file, indent=4)
+    
+    print(f"Processed data saved to: {output_file_path}")
+
+# Example:
+
+model_name = "llama"
+split = "valid"  # or "train" or "test"
 alpha = 0.15  # 15% masking ratio
 
 # Assuming you have already loaded your model and tokenizer
@@ -60,12 +110,4 @@ alpha = 0.15  # 15% masking ratio
 # model = AutoModelForCausalLM.from_pretrained(model_id, token=access_token)
 # model = model.to("cuda")
 
-sample_text = "The quick brown fox jumps over the lazy dog."
-
-# Mask tokens
-masked_text, mask_indices = mask_tokens(sample_text, alpha, tokenizer)
-print(f"Masked text: {masked_text}")
-
-# Fill masked tokens
-filled_text = fill_masked_tokens(masked_text, model, tokenizer)
-print(f"Filled text: {filled_text}")
+process_data_with_masking(model_name, split, alpha, model, tokenizer)
