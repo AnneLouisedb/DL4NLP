@@ -55,16 +55,16 @@ def fill_masked_tokens(masked_text, model, tokenizer):
     
     return filled_text
 
-def process_data_with_masking(model_name, split, alpha, model, tokenizer, num_iterations = 10):
+def process_data_with_masking(model_name, split,  model, tokenizer, alphas = [0.01, 0.02, 0.15, 0.5, 0.9], num_iterations = 10):
     """
     Process data from a JSON file, apply masking and denoising to specific fields,
     and save the denoised results back to the dictionary.
     
     :param model_name: Name of the model folder
     :param split: Split of the data (e.g., 'train', 'valid', 'test')
-    :param alpha: Masking ratio
     :param model: Language model to use for filling masked tokens
     :param tokenizer: Tokenizer associated with the model
+    :param alphas: List of masking ratios to apply
     :param num_iterations: Number of times to perform masking and denoising (default: 10)
     """
     # Construct the file path
@@ -84,15 +84,16 @@ def process_data_with_masking(model_name, split, alpha, model, tokenizer, num_it
         for key in ['answer-llm', 'follow-up-llm']:
             if key in item:
                 original_text = item[key]
-                for i in range(1, num_iterations + 1):
-                    # Apply masking
-                    masked_text, _ = mask_tokens(item[key], alpha, tokenizer)
-                    
-                    # Apply denoising
-                    denoised_text = fill_masked_tokens(masked_text, model, tokenizer)
-                    
-                    # Save the result back to the dictionary
-                    item[f"{key}_alpha_{alpha}_{i}"] = denoised_text
+                for alpha in alphas:
+                    for i in range(1, num_iterations + 1):
+                        # Apply masking
+                        masked_text, _ = mask_tokens(item[key], alpha, tokenizer)
+                        
+                        # Apply denoising
+                        denoised_text = fill_masked_tokens(masked_text, model, tokenizer)
+                        
+                        # Save the result back to the dictionary
+                        item[f"{key}_alpha_{alpha}_{i}"] = denoised_text
     
     # Save the updated data back to the file
     output_file_path = f'data/{model_name}/{split}.json'
