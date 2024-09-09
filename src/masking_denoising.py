@@ -114,4 +114,4 @@ alpha = 0.15  # 15% masking ratio
 # model = AutoModelForCausalLM.from_pretrained(model_id, token=access_token)
 # model = model.to("cuda")
 
-process_data_with_masking(model_name, split, alpha, model, tokenizer)
+process_data_with_masking(model_name, split, model, tokenizer)
