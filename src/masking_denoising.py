@@ -55,7 +55,7 @@ def fill_masked_tokens(masked_text, model, tokenizer):
     
     return filled_text
 
-def process_data_with_masking(model_name, split, alpha, model, tokenizer):
+def process_data_with_masking(model_name, split, alpha, model, tokenizer, num_iterations = 10):
     """
     Process data from a JSON file, apply masking and denoising to specific fields,
     and save the denoised results back to the dictionary.
@@ -65,6 +65,7 @@ def process_data_with_masking(model_name, split, alpha, model, tokenizer):
     :param alpha: Masking ratio
     :param model: Language model to use for filling masked tokens
     :param tokenizer: Tokenizer associated with the model
+    :param num_iterations: Number of times to perform masking and denoising (default: 10)
     """
     # Construct the file path
     file_path = f'data/{model_name}/{split}.json'
@@ -82,14 +83,16 @@ def process_data_with_masking(model_name, split, alpha, model, tokenizer):
     for item in tqdm(data, desc=f"Processing {split} data"):
         for key in ['answer-llm', 'follow-up-llm']:
             if key in item:
-                # Apply masking
-                masked_text, _ = mask_tokens(item[key], alpha, tokenizer)
-                
-                # Apply denoising
-                denoised_text = fill_masked_tokens(masked_text, model, tokenizer)
-                
-                # Save the result back to the dictionary
-                item[f"{key}_alpha_{alpha}"] = denoised_text
+                original_text = item[key]
+                for i in range(1, num_iterations + 1):
+                    # Apply masking
+                    masked_text, _ = mask_tokens(item[key], alpha, tokenizer)
+                    
+                    # Apply denoising
+                    denoised_text = fill_masked_tokens(masked_text, model, tokenizer)
+                    
+                    # Save the result back to the dictionary
+                    item[f"{key}_alpha_{alpha}_{i}"] = denoised_text
     
     # Save the updated data back to the file
     output_file_path = f'data/{model_name}/{split}.json'
