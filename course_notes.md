@@ -71,6 +71,8 @@ Count-based language models form the foundation of traditional approaches to lan
 #### Challenges in (Count based) Language Modeling
 - Zero probabilities can occur when certain n-grams are not present in the training data, necessitating smoothing techniques to adjust probabilities.
 - The size and precision of count-based models can be significant challenges. As the order of n-grams increases, the model size grows exponentially, leading to storage and computational issues.
+- Semantic relationships: These models struggle to capture the semantic similarity between words like 'green' and 'blue'. They treat these words as entirely distinct entities, even though they are semantically related as colors.
+- Morphological relationships: Count-based models don't inherently recognize the connection between morphologically related words such as 'bought' and 'buy'. These are treated as separate tokens, despite their shared root and meaning.
 
 #### Smoothing Techniques
 Language model smoothing is a crucial technique to address the zero-probability problem that arises when certain n-grams are not observed in the training data.
@@ -82,10 +84,18 @@ Language model smoothing is a crucial technique to address the zero-probability 
  
 
 #### Probabilistic Neural Language Models (PNLMs) 
-Represent a more modern approach to language modeling. These models use neural network architectures to learn distributed representations of words and capture more complex dependencies in language. The PNLM architecture typically involves embedding layers, hidden layers, and output layers that predict the probability distribution of the next word.
+Represent a more modern approach to language modeling. These models use neural network architectures to learn distributed representations of words and capture more complex dependencies in language. The PNLM architecture typically involves embedding layers, hidden layers (capture the contextual dependencies between words in an n-gram), and output layers that predict the probability distribution of the next word.
 
+- Each word in the vocabulary is mapped to a m-dimensional real-valued
+vector.
+- Trained with cross-entropy loss
+
+Advanages:
+- Limited memory needed
+- Better perplexity
+  
 Practical challenges in implementing PNLMs include:
-- managing large vocabularies
+- Computationally expensive due to large vocabulary
 - handling out-of-vocabulary words
 - optimizing model performance for specific tasks or domains.
 
