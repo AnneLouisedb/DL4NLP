@@ -103,7 +103,70 @@ Practical challenges in implementing PNLMs include:
 
 ### Week 2: 
 
-### Week 2.a Recurrent Neural Networks
+### Week 2.a Recurrent Neural Networks (RNNs)
+
+##### Introduction to RNNs
+
+- RNNs are designed to process sequential data
+- They maintain a hidden state that can capture information from previous time steps
+- Suitable for tasks like language modeling, sequence labeling, and machine translation
+
+##### Basic RNN Architecture
+
+- Input layer: Receives current input
+- Hidden layer: Maintains and updates state
+- Output layer: Produces predictions
+- Recurrent connection: Feeds hidden state back into the network
+
+##### Types of RNNs
+
+1. **Simple RNN**
+   - Basic architecture with a single hidden layer
+   - Suffers from vanishing/exploding gradient problem
+
+2. **Long Short-Term Memory (LSTM)**
+   - Introduces gates to control information flow
+   - Better at capturing long-term dependencies
+
+3. **Gated Recurrent Unit (GRU)**
+   - Simplified version of LSTM with fewer parameters
+   - Often performs comparably to LSTM
+
+##### Applications in NLP
+
+- Language modeling
+- Part-of-speech tagging
+- Named entity recognition
+- Machine translation (as part of encoder-decoder architectures)
+
+##### Training RNNs
+
+- Backpropagation Through Time (BPTT)
+- Truncated BPTT for long sequences
+- Gradient clipping to address exploding gradients
+
+##### Challenges
+
+- Vanishing and exploding gradients
+- Difficulty in capturing very long-term dependencies
+- Computational inefficiency for very long sequences
+
+##### Advanced RNN Techniques
+
+- Bidirectional RNNs
+- Deep (stacked) RNNs
+- Attention mechanisms
+
+##### Comparison with Other Architectures
+
+- RNNs vs. Feed-forward networks
+- RNNs vs. Transformers
+
+##### Practical Considerations
+
+- Choice of activation functions
+- Initialization strategies
+- Regularization techniques (e.g., dropout)
 
 ### Week 2.b Sequence-to-Sequence Modeling
 
