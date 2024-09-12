@@ -66,15 +66,30 @@
 - N-gram models compute probabilities based on consecutive word sequences, utilizing the chain rule to decompose joint probabilities into conditional probabilities.
 - The Markov assumption simplifies the model by assuming that the probability of a word depends only on the last $$n-1$$ words.
 
-#### Challenges in Language Modeling
+Count-based language models form the foundation of traditional approaches to language modeling. These models rely on the Markov assumption, which posits that the probability of a word depends only on a limited number of preceding words, leading to the concept of n-grams. N-gram models compute probabilities based on the frequency of word sequences in a corpus, with higher-order n-grams (e.g., trigrams, 4-grams) potentially capturing more context but also suffering from data sparsity.
+
+#### Challenges in (Count based) Language Modeling
 - Zero probabilities can occur when certain n-grams are not present in the training data, necessitating smoothing techniques to adjust probabilities.
+- The size and precision of count-based models can be significant challenges. As the order of n-grams increases, the model size grows exponentially, leading to storage and computational issues.
 
 #### Smoothing Techniques
+Language model smoothing is a crucial technique to address the zero-probability problem that arises when certain n-grams are not observed in the training data.
 - Various smoothing methods address the problem of zero probabilities:
   - **Jelinek-Mercer Smoothing**: Weighted interpolation of conditional probabilities.
   - **Katz Smoothing**: Back-off to lower-order probabilities.
   - **Witten-Bell Smoothing**: Linear interpolation weighted by the number of contexts.
   - **Kneser-Ney Smoothing**: Weights lower-order probabilities based on context occurrences.
+ 
+
+#### Probabilistic Neural Language Models (PNLMs) 
+Represent a more modern approach to language modeling. These models use neural network architectures to learn distributed representations of words and capture more complex dependencies in language. The PNLM architecture typically involves embedding layers, hidden layers, and output layers that predict the probability distribution of the next word.
+
+Practical challenges in implementing PNLMs include:
+- managing large vocabularies
+- handling out-of-vocabulary words
+- optimizing model performance for specific tasks or domains.
+
+
 
 
 
