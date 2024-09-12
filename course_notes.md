@@ -18,17 +18,23 @@ Feed-Forward LM (FFNN)
 Word Represenation embeddings
 - language modeling
 - word representation (embedding)
+
+Disadvantage:
+- Restricted to fixed sentence length
   
 #### Sequence classification
-CNN (Convolutional)
-- language modeling
+CNN (Convolutional) -> supparize vectors in the top layer by pooling
+- language modeling -> summarization and translation
 - sentence classification
-  
+
+ 
 #### Sequence labeling
 RNN language models
 - summarization
 - sequence labeling (POS,NER)
 - machine translation
+
+Encoder (CNN or RNN) / Decoder architecture (RNN) can summarize, or create a caption
 
 #### Sequence-to-Sequence modeling
 Neural maching translation (RNN and Transformer)
