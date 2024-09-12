@@ -101,6 +101,13 @@ Practical challenges in implementing PNLMs include:
 
 ### Week 1.c Word Embeddings
 
+##### Context Vectors in Distributional Semantics
+
+- Tend to be high dimensional (depending on |Vc|)
+- Tend to be sparse (many words do not occur in the context of a given target word)
+- Do not distinguish between left and right context
+- Do not distinguish between syntactic roles of context word
+
 ### Week 2: 
 
 ### Week 2.a Recurrent Neural Networks (RNNs)
