@@ -129,6 +129,10 @@ Practical challenges in implementing PNLMs include:
 - Larger window sizes can introduce irrelevant context and increase model complexity.
 - Normalization techniques may lose important morphological information.
 
+#### CBOW
+TO DO
+#### Word2Vec
+TO DO
 
 ### Week 2: 
 
