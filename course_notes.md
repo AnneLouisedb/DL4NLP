@@ -90,7 +90,7 @@ Represent a more modern approach to language modeling. These models use neural n
 vector.
 - Trained with cross-entropy loss
 
-Advanages:
+Advantages:
 - Limited memory needed
 - Better perplexity
   
@@ -98,6 +98,11 @@ Practical challenges in implementing PNLMs include:
 - Computationally expensive due to large vocabulary
 - handling out-of-vocabulary words
 - optimizing model performance for specific tasks or domains.
+
+### Week 1.c Word Embeddings
+
+### Week 2: Recurrent Neural Networks
+
 
 
 
