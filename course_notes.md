@@ -101,7 +101,12 @@ Practical challenges in implementing PNLMs include:
 
 ### Week 1.c Word Embeddings
 
-### Week 2: Recurrent Neural Networks
+### Week 2: 
+
+### Week 2.a Recurrent Neural Networks
+
+### Week 2.b Sequence-to-Sequence Modeling
+
 
 
 
