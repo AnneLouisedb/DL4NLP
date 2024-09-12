@@ -108,6 +108,28 @@ Practical challenges in implementing PNLMs include:
 - Do not distinguish between left and right context
 - Do not distinguish between syntactic roles of context word
 
+##### Sparsity in count-based language models can be somewhat alleviated
+
+1. Increasing size of training corpus:
+   - A larger corpus provides more examples of word co-occurrences, potentially reducing the number of zero counts.
+   - This can help capture more rare word combinations and improve the model's coverage.
+
+2. Increasing window size:
+   - By considering a wider context window, more words are included in the context, potentially reducing sparsity.
+   - However, this approach can also lead to increased computational complexity and may introduce noise from less relevant context words.
+
+3. Normalizing inflections (stemming, lemmatizing):
+   - Stemming or lemmatizing words reduces the vocabulary size by mapping different word forms to a common base form.
+   - This can help aggregate counts for related words, potentially reducing sparsity.
+   - For example, "running," "runs," and "ran" might all be mapped to "run," combining their counts.
+
+##### limitations:
+
+- Increasing corpus size may not always be feasible due to data availability or computational constraints.
+- Larger window sizes can introduce irrelevant context and increase model complexity.
+- Normalization techniques may lose important morphological information.
+
+
 ### Week 2: 
 
 ### Week 2.a Recurrent Neural Networks (RNNs)
