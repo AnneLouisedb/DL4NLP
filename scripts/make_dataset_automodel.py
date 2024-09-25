@@ -9,10 +9,10 @@ from tqdm import tqdm
 import numpy as np
 import random
 from transformers import pipeline, set_seed
-from transformers import LlamaForCausalLM, LlamaTokenizer, AutoModelForCausalLM, AutoTokenizer, GemmaForCausalLM
+from transformers import LlamaForCausalLM, AutoTokenizer, Gemma2ForCausalLM
 import argparse
 import torch.nn.functional as F
-import h5py
+from safetensors.torch import save_file
 
 # Function to set all random seeds
 def set_all_seeds(seed):
@@ -85,47 +85,85 @@ def generate_llm_responses(datapoint, pipeline):
 
     return datapoint, logits_answer, logits_follow_up
 
-# New function to append tensors to an HDF5 file
-def save_tensors_iteratively(tensor, hdf5_path, dataset_name):
-    """Save tensor iteratively in an HDF5 file."""
-    with h5py.File(hdf5_path, 'a') as f:
-        if dataset_name in f:
-            # If the dataset already exists, resize it and append the new tensor
-            existing_data = f[dataset_name]
-            new_size = existing_data.shape[0] + tensor.shape[0]
-            existing_data.resize((new_size,) + existing_data.shape[1:])
-            existing_data[-tensor.shape[0]:] = tensor
-        else:
-            # Create the dataset if it doesn't exist
-            maxshape = (None,) + tensor.shape[1:]  # Allow unlimited first dimension
-            tensor = tensor.cpu().numpy()
-            f.create_dataset(dataset_name, data=tensor, maxshape=maxshape)
-
 # Modified process_dataset function
 def process_dataset(filepath, pipeline, output_suffix="-llm"):
     """Process a dataset by generating LLM responses and saving the updated data iteratively."""
     # Load the dataset
     data = load_json_file(filepath)
-
-    hdf5_answer_path = filepath.replace('data/', 'data/llama/').replace('.json', '-answer.h5')
-    hdf5_follow_up_path = filepath.replace('data/', 'data/llama/').replace('.json', '-follow-up.h5')
-
+    print(len(data))
+    # Make tensor of len data and 2 columns
+    tensor_ans = torch.zeros(len(data), 2, 256)
+    tensor_follow_up = torch.zeros(len(data), 2, 64)
     # Process each datapoint in the dataset
-    for datapoint in tqdm(data):
+    for i, datapoint in tqdm(enumerate(data)):
         datapoint, logits_ans, logits_follow_up = generate_llm_responses(datapoint, pipeline)
 
+        path = filepath.replace('data/', f'data/{args.model}/')
+        save_json_file(data, path)
+
         # Convert logits to CPU and half precision
-        logits_ans = logits_ans.to('cpu').to(torch.float16)
-        logits_follow_up = logits_follow_up.to('cpu').to(torch.float16)
+        logits_ans = logits_ans.cpu().to(torch.float16)
+        print(f"Shape logits_ans before padding {logits_ans.shape}")
+        # Add padding to the logits_ans tensor
+        # if args.model == "llama":
+        #     if logits_ans.shape[1] < 256:
+        #         padding = torch.zeros(logits_ans.shape[0], 256 - logits_ans.shape[1], logits_ans.shape[2])
+        #         logits_ans = torch.cat((logits_ans, padding), dim=1)
 
-        # Save logits iteratively
-        save_tensors_iteratively(logits_ans, hdf5_answer_path, 'logits_answers')
-        save_tensors_iteratively(logits_follow_up, hdf5_follow_up_path, 'logits_follow_ups')
+        # elif args.model == "gemma":
+        if logits_ans.shape[0] < 256:
+            padding = torch.zeros(256 - logits_ans.shape[0], logits_ans.shape[1])
+            logits_ans = torch.cat((logits_ans, padding), dim=0)
 
+            
+        print(f"Shape logits_ans after padding {logits_ans.shape}")
+        max_val, idx = torch.max(logits_ans, dim=-1)
+
+        print(f"Shape idx : {idx.shape}")
+        print(f"Shape max_val : {max_val.shape}")
+
+        tensor_ans[i, 0, :] = idx
+        
+        tensor_ans[i, 1, :] = max_val
+
+
+        logits_follow_up = logits_follow_up.cpu().to(torch.float16)
+        # print(f"Logits follow up shape : {logits_follow_up.shape}")
+        # Add padding to the logits_follow_up tensor
+        print(f"Shape logits_follow_up before padding {logits_follow_up.shape}")
+        # if args.model == "llama":
+        #     if logits_follow_up.shape[1] < 64:
+        #         padding = torch.zeros(logits_follow_up.shape[0], 64 - logits_follow_up.shape[1], logits_follow_up.shape[2])
+        #         logits_follow_up = torch.cat((logits_follow_up, padding), dim=1)
+
+        # elif args.model == "gemma":
+        if logits_follow_up.shape[0] < 64:
+            padding = torch.zeros(64 - logits_follow_up.shape[0], logits_follow_up.shape[1])
+            logits_follow_up = torch.cat((logits_follow_up, padding), dim=0)
+
+        print(f"Shape logits_follow_up after padding {logits_follow_up.shape}")
+        max_val, idx = torch.max(logits_follow_up, dim=-1)
+        print(f"Shape idx : {idx.shape}")
+        print(f"Shape max_val : {max_val.shape}")
+        # print(f"Shape max _val {max_val.shape}")
+        # print(f"Shape idx {idx.shape}")
+        tensor_follow_up[i, 0, :] = idx
+        tensor_follow_up[i, 1, :] = max_val
+        
         # Empty the cache
         torch.cuda.empty_cache()
 
-    print(f"Tensors saved iteratively in {hdf5_answer_path} and {hdf5_follow_up_path}")
+        # If i is a multiple of 100, save the tensors to disk
+        if i % 100 == 0:
+            path = filepath.replace('data/', f'data/{args.model}/tensors/').replace('.json', f'-ans.pt')
+            torch.save(tensor_ans, path)
+            path = filepath.replace('data/', f'data/{args.model}/tensors/').replace('.json', f'-follow-up.pt')
+            torch.save(tensor_follow_up, path)
+
+    path = filepath.replace('data/', f'data/{args.model}/tensors/').replace('.json', f'-ans.pt')
+    torch.save(tensor_ans, path)
+    path = filepath.replace('data/', f'data/{args.model}/tensors/').replace('.json', f'-follow-up.pt')
+    torch.save(tensor_follow_up, path)
 
 def save_json_file(data, filepath):
     """Save data to a JSON file."""
@@ -137,8 +175,8 @@ def main(pipeline):
     # Create the parser
 
     # process_dataset(VALID_FILE, pipeline)
-    process_dataset(TRAIN_FILE, pipeline)
-    # process_dataset(TEST_FILE, pipeline)
+    # process_dataset(TRAIN_FILE, pipeline)
+    process_dataset(TEST_FILE, pipeline)
 
 # Example usage:
 # Assuming you have a defined pipeline, you can call the main function:
@@ -163,17 +201,16 @@ if __name__ == "__main__":
         model_id = "meta-llama/Meta-Llama-3.1-8B-Instruct"
         tokenizer = AutoTokenizer.from_pretrained(model_id, token=access_token)
         model = LlamaForCausalLM.from_pretrained(model_id, token=access_token)
-        print("==================================")
-        print(f"Model and tokenizer for {args.model} initialized")
-        print("==================================")
+
 
     elif args.model == "gemma":
         model_id ="google/gemma-2-9b-it"
         tokenizer = AutoTokenizer.from_pretrained(model_id, token=access_token)
-        model = GemmaForCausalLM.from_pretrained(model_id, token=access_token)
-        print("==================================")
-        print(f"Model and tokenizer for {args.model} initialized")
-        print("==================================")
+        model = Gemma2ForCausalLM.from_pretrained(model_id, token=access_token)
+
+    print("==================================")
+    print(f"Model and tokenizer for {args.model} initialized")
+    print("==================================")
 
     model = model.to(device)
     model.generation_config.pad_token_id = tokenizer.pad_token_id
