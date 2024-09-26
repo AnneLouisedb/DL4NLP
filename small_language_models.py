@@ -1,4 +1,4 @@
-from llama_cpp import Llama
+from transformers import AutoModelForCausalLM, AutoTokenizer
 import itertools
 from typing import Callable
 import numpy as np
