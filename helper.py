@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch.nn.functional as F
 from tqdm import tqdm
 # from llama_cpp import Llama
