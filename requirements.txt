@@ -6,3 +6,4 @@ matplotlib
 transformers
 safetensors
 scikit-learn
+sentencepiece

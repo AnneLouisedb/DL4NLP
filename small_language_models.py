@@ -1,4 +1,4 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer,LlamaForCausalLM
+from transformers import AutoModelForCausalLM, AutoTokenizer,LlamaForCausalLM,Gemma2ForCausalLM
 import itertools
 from typing import Callable
 import numpy as np
@@ -229,7 +229,7 @@ if __name__ == "__main__":
     seed_value = 42
     set_all_seeds(seed_value)
     
-    device = "cuda"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     access_token="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"
 
     if args.detector_model == "llama":
@@ -250,29 +250,6 @@ if __name__ == "__main__":
     base_model = base_model.to(device)
     base_model.generation_config.pad_token_id = tokenizer.pad_token_id
 
-    # base_model = Llama(model_path=model_path,
-    #             verbose=False,        
-    #             logits_all=True,      
-    #             n_ctx=512,            # Maximum context size (number of tokens) the model can handle
-    #             n_batch=512,          # Number of tokens to process in one batch
-    #             n_threads=3,          # Number of threads llama operations can be processed
-    #             n_threads_batch=3,    # similar to n_threads, but for batch processing (parallel execution of different llama operations)
-    #             use_mlock=True,
-    #             # embedding=True        # Use mlock to prevent paging the model to disk (depends on your system's memory)
-    #             )
-
-    # base_model_embedding = Llama(model_path=model_path,
-    #             verbose=False,        
-    #             logits_all=True,      
-    #             n_ctx=512,            # Maximum context size (number of tokens) the model can handle
-    #             n_batch=512,          # Number of tokens to process in one batch
-    #             n_threads=3,          # Number of threads llama operations can be processed
-    #             n_threads_batch=3,    # similar to n_threads, but for batch processing (parallel execution of different llama operations)
-    #             use_mlock=True,
-    #             embedding=True        # Use mlock to prevent paging the model to disk (depends on your system's memory)
-    #             )
-    
-    
 
     # Run the main processing functions
     logger.info("Starting perturbation generation...")
