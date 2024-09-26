@@ -222,7 +222,7 @@ if __name__ == "__main__":
         model_id = "meta-llama/Meta-Llama-3.1-8B-Instruct"
 
     if args.model_name == 'gemma':
-        model_path =  "gemma-2-9b-it-Q6_K.gguf"
+        model_path =  "gemma-2-27b-it-IQ2_XS.gguf"
 
     base_model = Llama(model_path=model_path,
                 verbose=False,        
@@ -251,21 +251,21 @@ if __name__ == "__main__":
     # Run the main processing functions
     logger.info("Starting perturbation generation...")
  
-    # make_perturbations(
-    #     model_name=args.model_name,
-    #     split=args.split,
-    #     n_pertubations=args.n_perturbations,
-    #     alphas=args.alphas)
+    make_perturbations(
+        model_name=args.model_name,
+        split=args.split,
+        n_pertubations=args.n_perturbations,
+        alphas=args.alphas)
 
     logger.info(f"Starting denoising with the LLM.. {args.mask_model}")
 
-    # denoise_with_llm(
-    #     model_name=args.model_name, # Path to the generated dataset (e.g. Llama created the test set)
-    #     mask_model=args.mask_model,
-    #     split=args.split,
-    #     n_pertubations=args.n_perturbations,
-    #     alphas=args.alphas
-    # )
+    denoise_with_llm(
+        model_name=args.model_name, # Path to the generated dataset (e.g. Llama created the test set)
+        mask_model=args.mask_model,
+        split=args.split,
+        n_pertubations=args.n_perturbations,
+        alphas=args.alphas
+    )
 
     logger.info("Processing complete. Now we need to get the log likelihood scores!")
 
