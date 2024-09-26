@@ -8,7 +8,7 @@
 - [ ] Estimate threshold (Roos)
 
 
-python3 -m venv
+python3 -m venv DL4NLP
 source myenv/bin/activate
 pip install -r requirements.txt
 
