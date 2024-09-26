@@ -77,7 +77,7 @@ def get_ll(model, tokenizer, text):
 
 
 
-def get_lls(llm: Llama, texts: [str], disable_tqdm):
+def get_lls(llm, tokenizer, texts: [str], disable_tqdm):
 
     assert isinstance(texts, list), "texts must be a list"
     
@@ -87,7 +87,7 @@ def get_lls(llm: Llama, texts: [str], disable_tqdm):
 
     ):  
         assert isinstance(text[0], str), f"texts must be a string {text[0]}"
-        lls.append(get_ll(llm, text[0])) # this has to be a string
+        lls.append(get_ll(llm, tokenizer, text[0])) # this has to be a string
     return lls
 
 
@@ -275,3 +275,4 @@ def tokenize_and_mask(text, span_length, pct, ceil_pct=False, max_attempts=5) ->
     text = " ".join(tokens)
 
     return text
+
