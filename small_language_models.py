@@ -305,5 +305,5 @@ if __name__ == "__main__":
         alphas=args.alphas)
 
 
-# example: python small_language_models.py --model_name 'llama' --split 'train' --mask_model 'T5-small' --n_perturbations 5
+# example: python small_language_models.py --model_name 'llama' --split 'train' --mask_model 'T5-small' --n_perturbations 5 --detector_model 'llama'
 

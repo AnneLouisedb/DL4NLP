@@ -7,6 +7,7 @@
 - [ ] Run Gemma (AnneLouise)
 - [ ] Estimate threshold (Roos)
 
+## Install environment
 
 python3 -m venv DL4NLP
 source DL4NLP/bin/activate
