@@ -9,6 +9,6 @@
 
 
 python3 -m venv DL4NLP
-source myenv/bin/activate
+source DL4NLP/bin/activate
 pip install -r requirements.txt
 
