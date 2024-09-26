@@ -203,11 +203,26 @@ def return_scores(detector_model, split, model_name, mask_model, n_pertubations,
 ###### RUN THE MAIN #######
 
 if __name__ == "__main__":
+    
+    # Argument parser setup
+    parser = argparse.ArgumentParser(description="Process and perturb text data.")
+    parser.add_argument("--model_name", type=str, required=True, help="Name of the model that generated the data.")
+    parser.add_argument("--split", type=str, required=True, help="Data split to process (e.g., train, test).")
+    parser.add_argument("--n_perturbations", type=int, default=5, help="Number of perturbations to create.")
+    parser.add_argument("--alphas", type=float, nargs='+', default=[0.2], help="List of alpha values for perturbations.")
+    parser.add_argument("--span_length", type=int, default=1, help="Length of the span to mask.") # USE 1, not more
+    #parser.add_argument("--ceil_pct", action='store_true', help="Use ceiling percentage for masking.") # ignore
+    parser.add_argument("--mask_model", type=str, required=True, choices=['llama', 'T5-small', 'T5-large'], help="Model to use for denoising.")
+    parser.add_argument("--detector_model", type=str, default="base_model", help="Model to use for detection (defaults to base_model).")
 
-    model_id = "meta-llama/Meta-Llama-3.1-8B-Instruct"
-    model_path =  "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf" #Download this file from huggingface
+    args = parser.parse_args()
 
-    # Load llama models to get the embeddings 
+    if args.model_name == 'llama':
+        model_path =  "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf" #Download this file from huggingface
+        model_id = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+
+    if args.model_name == 'gemma':
+        model_path =  "gemma-2-9b-it-Q6_K.gguf"
 
     base_model = Llama(model_path=model_path,
                 verbose=False,        
@@ -231,18 +246,7 @@ if __name__ == "__main__":
                 embedding=True        # Use mlock to prevent paging the model to disk (depends on your system's memory)
                 )
     
-    # Argument parser setup
-    parser = argparse.ArgumentParser(description="Process and perturb text data.")
-    parser.add_argument("--model_name", type=str, required=True, help="Name of the model that generated the data.")
-    parser.add_argument("--split", type=str, required=True, help="Data split to process (e.g., train, test).")
-    parser.add_argument("--n_perturbations", type=int, default=5, help="Number of perturbations to create.")
-    parser.add_argument("--alphas", type=float, nargs='+', default=[0.2], help="List of alpha values for perturbations.")
-    parser.add_argument("--span_length", type=int, default=1, help="Length of the span to mask.") # USE 1, not more
-    #parser.add_argument("--ceil_pct", action='store_true', help="Use ceiling percentage for masking.") # ignore
-    parser.add_argument("--mask_model", type=str, required=True, choices=['llama', 'T5-small', 'T5-large'], help="Model to use for denoising.")
-    parser.add_argument("--detector_model", type=str, default="base_model", help="Model to use for detection (defaults to base_model).")
-
-    args = parser.parse_args()
+    
 
     # Run the main processing functions
     logger.info("Starting perturbation generation...")
