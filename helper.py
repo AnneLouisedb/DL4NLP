@@ -1,6 +1,9 @@
 import numpy as np
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch.nn.functional as F
 from tqdm import tqdm
-from llama_cpp import Llama
+# from llama_cpp import Llama
 import re
 from typing import List, Dict
 from transformers import T5Tokenizer, T5ForConditionalGeneration
@@ -21,18 +24,28 @@ def softmax(x):
     e_x = np.exp(x - np.max(x))
     return e_x / e_x.sum(axis=-1, keepdims=True)
 
-def get_ll(llm: Llama, text: str):
-    """Calculate the log-likelihood of the given text using the Llama model.
-       If a runtime error occurs during evaluation, return None or an alternative value."""
+def get_ll(model, tokenizer, text):
+    """
+    Calculate the log-likelihood of the given text using a Hugging Face causal language model.
+    If a runtime error occurs during evaluation, return None or an alternative value.
+    """
     try:
-        tokenized_text = llm.tokenizer().encode(text)
-        llm.reset()
-        llm.eval(tokenized_text)  # runtime error might occur here
-        logits = np.array(llm._scores)
-        softmax_logits = softmax(logits)
+        # Tokenize the input text
+        inputs = tokenizer(text, return_tensors='pt')
+        input_ids = inputs['input_ids']
+
+        # Forward pass to get logits
+        with torch.no_grad():
+            outputs = model(input_ids)
+            logits = outputs.logits
+
+        # Compute softmax over the logits to get probabilities
+        softmax_logits = F.softmax(logits, dim=-1).squeeze()
+
+        # Calculate log-likelihood
         log_likelihood = 0.0
-        for i, token_id in enumerate(tokenized_text):
-            prob = softmax_logits[i, token_id]
+        for i, token_id in enumerate(input_ids.squeeze()):
+            prob = softmax_logits[i, token_id].item()
             log_likelihood += np.log(prob)
 
         return log_likelihood
@@ -40,7 +53,28 @@ def get_ll(llm: Llama, text: str):
     except RuntimeError as e:
         # Handle the RuntimeError (e.g., return None or log the error)
         print(f"RuntimeError occurred: {e}")
-        return None  # You can return a default value or some other indicator
+        return None
+
+# def get_ll(llm: Llama, text: str):
+#     """Calculate the log-likelihood of the given text using the Llama model.
+#        If a runtime error occurs during evaluation, return None or an alternative value."""
+#     try:
+#         tokenized_text = llm.tokenizer().encode(text)
+#         llm.reset()
+#         llm.eval(tokenized_text)  # runtime error might occur here
+#         logits = np.array(llm._scores)
+#         softmax_logits = softmax(logits)
+#         log_likelihood = 0.0
+#         for i, token_id in enumerate(tokenized_text):
+#             prob = softmax_logits[i, token_id]
+#             log_likelihood += np.log(prob)
+
+#         return log_likelihood
+
+#     except RuntimeError as e:
+#         # Handle the RuntimeError (e.g., return None or log the error)
+#         print(f"RuntimeError occurred: {e}")
+#         return None  # You can return a default value or some other indicator
 
 
 
