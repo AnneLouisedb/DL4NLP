@@ -223,13 +223,13 @@ if __name__ == "__main__":
     device = "cuda"
     access_token="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"
 
-    if args.model_name == "llama":
+    if args.detector_model == "llama":
         model_id = "meta-llama/Meta-Llama-3.1-8B-Instruct"
         tokenizer = AutoTokenizer.from_pretrained(model_id, token=access_token)
         base_model = LlamaForCausalLM.from_pretrained(model_id, token=access_token)
 
 
-    elif args.model_name == "gemma":
+    elif args.detector_model == "gemma":
         model_id ="google/gemma-2-9b-it"
         tokenizer = AutoTokenizer.from_pretrained(model_id, token=access_token)
         base_model = Gemma2ForCausalLM.from_pretrained(model_id, token=access_token)
