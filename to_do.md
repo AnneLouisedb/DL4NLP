@@ -7,3 +7,8 @@
 - [ ] Run Gemma (AnneLouise)
 - [ ] Estimate threshold (Roos)
 
+
+python3 -m venv
+source myenv/bin/activate
+pip install -r requirements.txt
+
