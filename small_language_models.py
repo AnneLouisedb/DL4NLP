@@ -1,4 +1,4 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer,LlamaForCausalLM
 import itertools
 from typing import Callable
 import numpy as np
@@ -16,9 +16,16 @@ import json
 from typing import List, Dict
 import argparse
 import csv
+import random
 
 # local functions
 from helper import softmax, get_ll, get_lls, tokenize_and_mask, replace_masks_llama_cpp, fill_masks_with_t5
+
+def set_all_seeds(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
 disable_tqdm = True
 logging.basicConfig(level=logging.INFO)
@@ -34,6 +41,7 @@ def make_perturbations(model_name, split, n_pertubations=5, alphas = [0.2], span
     
     with open(file_path, 'r') as file:
         data = json.load(file)
+        data = data[:5] # REMOVE
        
     for item in tqdm(data, desc=f"Processing {split} data"):
         for key in ['answer', 'follow-up', 'answer-llm', 'follow-up-llm']:
@@ -96,6 +104,7 @@ def denoise_with_llm(model_name, mask_model, split, n_pertubations, alphas = [0.
     
     with open(file_path, 'r') as file:
         data = json.load(file)
+        data = data[:5] # REMOVE
         
     for item in tqdm(data, desc=f"Processing {split} data"):
         for key in ['answer', 'follow-up', 'answer-llm', 'follow-up-llm']:
@@ -175,7 +184,7 @@ def return_scores(detector_model, split, tokenizer, model_name, mask_model, n_pe
                 for alpha in alphas:
                     # Access the denoised texts - this is a list of perturbations
                     denoised_texts = item.get(f"{key}_alpha_{alpha}_{n_pertubations}_{mask_model}_denoised", [])
-                    perturbed_lls = get_lls(detector_model, denoised_texts, disable_tqdm) # if one of theme is None (ignore the following lines)
+                    perturbed_lls = get_lls(detector_model, tokenizer, denoised_texts, disable_tqdm) # if one of theme is None (ignore the following lines)
                     
                     mean_perturbed_lls = np.mean([i for i in perturbed_lls if not math.isnan(i) and i is not None])
                     std_perturbed_lls = np.std([i for i in perturbed_lls if not math.isnan(i)]) if (len([i for i in perturbed_lls if not (math.isnan(i) or 0)]) > 1) else 1
@@ -235,33 +244,33 @@ if __name__ == "__main__":
         base_model = Gemma2ForCausalLM.from_pretrained(model_id, token=access_token)
 
     print("==================================")
-    print(f"Model and tokenizer for {args.model} initialized")
+    print(f"Model and tokenizer for {args.detector_model} initialized")
     print("==================================")
 
-    model = model.to(device)
-    model.generation_config.pad_token_id = tokenizer.pad_token_id
+    base_model = base_model.to(device)
+    base_model.generation_config.pad_token_id = tokenizer.pad_token_id
 
-    base_model = Llama(model_path=model_path,
-                verbose=False,        
-                logits_all=True,      
-                n_ctx=512,            # Maximum context size (number of tokens) the model can handle
-                n_batch=512,          # Number of tokens to process in one batch
-                n_threads=3,          # Number of threads llama operations can be processed
-                n_threads_batch=3,    # similar to n_threads, but for batch processing (parallel execution of different llama operations)
-                use_mlock=True,
-                # embedding=True        # Use mlock to prevent paging the model to disk (depends on your system's memory)
-                )
+    # base_model = Llama(model_path=model_path,
+    #             verbose=False,        
+    #             logits_all=True,      
+    #             n_ctx=512,            # Maximum context size (number of tokens) the model can handle
+    #             n_batch=512,          # Number of tokens to process in one batch
+    #             n_threads=3,          # Number of threads llama operations can be processed
+    #             n_threads_batch=3,    # similar to n_threads, but for batch processing (parallel execution of different llama operations)
+    #             use_mlock=True,
+    #             # embedding=True        # Use mlock to prevent paging the model to disk (depends on your system's memory)
+    #             )
 
-    base_model_embedding = Llama(model_path=model_path,
-                verbose=False,        
-                logits_all=True,      
-                n_ctx=512,            # Maximum context size (number of tokens) the model can handle
-                n_batch=512,          # Number of tokens to process in one batch
-                n_threads=3,          # Number of threads llama operations can be processed
-                n_threads_batch=3,    # similar to n_threads, but for batch processing (parallel execution of different llama operations)
-                use_mlock=True,
-                embedding=True        # Use mlock to prevent paging the model to disk (depends on your system's memory)
-                )
+    # base_model_embedding = Llama(model_path=model_path,
+    #             verbose=False,        
+    #             logits_all=True,      
+    #             n_ctx=512,            # Maximum context size (number of tokens) the model can handle
+    #             n_batch=512,          # Number of tokens to process in one batch
+    #             n_threads=3,          # Number of threads llama operations can be processed
+    #             n_threads_batch=3,    # similar to n_threads, but for batch processing (parallel execution of different llama operations)
+    #             use_mlock=True,
+    #             embedding=True        # Use mlock to prevent paging the model to disk (depends on your system's memory)
+    #             )
     
     
 
@@ -297,3 +306,4 @@ if __name__ == "__main__":
 
 
 # example: python small_language_models.py --model_name 'llama' --split 'train' --mask_model 'T5-small' --n_perturbations 5
+
