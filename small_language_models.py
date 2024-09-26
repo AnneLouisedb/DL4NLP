@@ -135,7 +135,7 @@ def denoise_with_llm(model_name, mask_model, split, n_pertubations, alphas = [0.
     print(f"Processed filled perturbations, saved to: {file_path}")
     return
 
-def return_scores(detector_model, split, model_name, mask_model, n_pertubations, alphas):
+def return_scores(detector_model, split, tokenizer, model_name, mask_model, n_pertubations, alphas):
 
     csv_file_path = f'results_detector_{detector_model}.csv'
     file_exists = os.path.isfile(csv_file_path)
@@ -170,7 +170,7 @@ def return_scores(detector_model, split, model_name, mask_model, n_pertubations,
                 if isinstance(original_text, str):
                     original_text = [original_text]
 
-                original_ll = get_ll(detector_model, original_text[0])
+                original_ll = get_ll(detector_model, tokenizer, original_text[0])
 
                 for alpha in alphas:
                     # Access the denoised texts - this is a list of perturbations
@@ -217,12 +217,29 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.model_name == 'llama':
-        model_path =  "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf" #Download this file from huggingface
-        model_id = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+    seed_value = 42
+    set_all_seeds(seed_value)
+    
+    device = "cuda"
+    access_token="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"
 
-    if args.model_name == 'gemma':
-        model_path =  "gemma-2-27b-it-IQ2_XS.gguf"
+    if args.model_name == "llama":
+        model_id = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+        tokenizer = AutoTokenizer.from_pretrained(model_id, token=access_token)
+        base_model = LlamaForCausalLM.from_pretrained(model_id, token=access_token)
+
+
+    elif args.model_name == "gemma":
+        model_id ="google/gemma-2-9b-it"
+        tokenizer = AutoTokenizer.from_pretrained(model_id, token=access_token)
+        base_model = Gemma2ForCausalLM.from_pretrained(model_id, token=access_token)
+
+    print("==================================")
+    print(f"Model and tokenizer for {args.model} initialized")
+    print("==================================")
+
+    model = model.to(device)
+    model.generation_config.pad_token_id = tokenizer.pad_token_id
 
     base_model = Llama(model_path=model_path,
                 verbose=False,        
@@ -272,6 +289,7 @@ if __name__ == "__main__":
     return_scores(
         detector_model = args.detector_model,
         split=args.split,
+        tokenizer = tokenizer,
         model_name=args.model_name,
         mask_model=args.mask_model,
         n_pertubations=args.n_perturbations,
