@@ -146,7 +146,7 @@ def denoise_with_llm(model_name, mask_model, split, n_pertubations, alphas = [0.
 
 def return_scores(detector_model, split, tokenizer, model_name, mask_model, n_pertubations, alphas):
 
-    csv_file_path = f'results_detector_{detector_model}.csv'
+    csv_file_path = f'results_detector_{args.detector_model}.csv'
     file_exists = os.path.isfile(csv_file_path)
 
     with open(csv_file_path, 'w', newline='') as csvfile:
@@ -254,26 +254,26 @@ if __name__ == "__main__":
     # Run the main processing functions
     logger.info("Starting perturbation generation...")
  
-    make_perturbations(
-        model_name=args.model_name,
-        split=args.split,
-        n_pertubations=args.n_perturbations,
-        alphas=args.alphas)
+    # make_perturbations(
+    #     model_name=args.model_name,
+    #     split=args.split,
+    #     n_pertubations=args.n_perturbations,
+    #     alphas=args.alphas)
 
     logger.info(f"Starting denoising with the LLM.. {args.mask_model}")
 
-    denoise_with_llm(
-        model_name=args.model_name, # Path to the generated dataset (e.g. Llama created the test set)
-        mask_model=args.mask_model,
-        split=args.split,
-        n_pertubations=args.n_perturbations,
-        alphas=args.alphas
-    )
+    # denoise_with_llm(
+    #     model_name=args.model_name, # Path to the generated dataset (e.g. Llama created the test set)
+    #     mask_model=args.mask_model,
+    #     split=args.split,
+    #     n_pertubations=args.n_perturbations,
+    #     alphas=args.alphas
+    # )
 
     logger.info("Processing complete. Now we need to get the log likelihood scores!")
 
     return_scores(
-        detector_model = args.detector_model,
+        detector_model = base_model,
         split=args.split,
         tokenizer = tokenizer,
         model_name=args.model_name,
