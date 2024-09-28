@@ -1,0 +1,31 @@
+#!/bin/bash
+
+#SBATCH \--partition=gpu
+#SBATCH \--gpus=1
+#SBATCH \--job-name=DATASET
+#SBATCH \--ntasks=1
+#SBATCH \--cpus-per-task=18
+#SBATCH \--time=04:00:00
+#SBATCH \--output=slurm_%A.out
+
+module purge
+module load 2022
+module load Anaconda3/2022.05
+
+ENV_NAME="DL4NLP2"
+PYTHON_VERSION="3.10"
+MODEL="gemma"
+# Activate the new environment
+echo "Activating the environment $ENV_NAME"
+source "$(conda info \--base)/etc/profile.d/conda.sh"
+conda activate $ENV_NAME
+# pip install sentencepiece
+
+echo "Running small_language_models.py"
+
+srun python small_language_models.py \
+    --file_path FILE-PATH-WITH-LLM-ANSWERS-AND-FOLLOW-UPS \
+    --model_name $MODEL \
+    --mask_model 'T5-small' \
+    --n_perturbations 5 \
+    --detector_model $MODEL
