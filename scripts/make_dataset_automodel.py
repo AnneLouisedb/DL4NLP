@@ -1,40 +1,24 @@
-# Import json file
+# Import necessary libraries
 import json
 import sys
 import os
-import transformers
 import torch
-import time  # Import the time module
 from tqdm import tqdm
 import numpy as np
 import random
-from transformers import pipeline, set_seed
-from transformers import LlamaForCausalLM, AutoTokenizer, Gemma2ForCausalLM
+from transformers import set_seed, AutoTokenizer
 import argparse
-import torch.nn.functional as F
-from safetensors.torch import save_file
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Function to set all random seeds
 def set_all_seeds(seed):
-    # Set seed for Python's built-in random module
     random.seed(seed)
-    
-    # Set seed for NumPy
     np.random.seed(seed)
-    
-    # Set seed for PyTorch (both CPU and GPU)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
-
-    # Set seed in the transformers library
     set_seed(seed)
-
-
-# Constants for file paths
-TRAIN_FILE = '../data/train.json'
-VALID_FILE = '../data/valid.json'
-TEST_FILE = '../data/test.json'
 
 def check_file_exists(filepath):
     """Check if the file exists."""
@@ -48,7 +32,7 @@ def load_json_file(filepath):
     with open(filepath, "r") as file:
         return json.load(file)
 
-def generate_llm_responses(datapoint, pipeline):
+def generate_llm_responses(datapoint, model, tokenizer):
     """Generate LLM responses for a given datapoint using a pipeline."""
     question = f"{datapoint['question']} Keep your answer short."
 
@@ -85,84 +69,55 @@ def generate_llm_responses(datapoint, pipeline):
 
     return datapoint, logits_answer, logits_follow_up
 
-# Modified process_dataset function
-def process_dataset(filepath, pipeline, output_suffix="-llm"):
+def process_dataset(model, tokenizer):
     """Process a dataset by generating LLM responses and saving the updated data iteratively."""
-    # Load the dataset
-    data = load_json_file(filepath)
-    print(len(data))
-    # Make tensor of len data and 2 columns
+    file_path = args.folder_path + f"/{args.split}.json"
+    save_path = f"{args.folder_path}/{args.model.split('/')[-1]}/"
+    tensor_path = f"{save_path}/tensors/"
+
+    data = load_json_file(file_path)
+
+    # Print the number of datapoints in the dataset
+    print(f"Number of datapoints in {file_path}: {len(data)}")
+
+    print(f"Generating LLM responses for {args.split} split...")
     tensor_ans = torch.zeros(len(data), 2, 256)
     tensor_follow_up = torch.zeros(len(data), 2, 64)
-    # Process each datapoint in the dataset
+
     for i, datapoint in tqdm(enumerate(data)):
-        datapoint, logits_ans, logits_follow_up = generate_llm_responses(datapoint, pipeline)
+        datapoint, logits_ans, logits_follow_up = generate_llm_responses(datapoint, model, tokenizer)
 
-        path = filepath.replace('data/', f'data/{args.model}/')
-        save_json_file(data, path)
+        save_json_file(data, save_path + args.split + '.json')
 
-        # Convert logits to CPU and half precision
         logits_ans = logits_ans.cpu().to(torch.float16)
-        print(f"Shape logits_ans before padding {logits_ans.shape}")
-        # Add padding to the logits_ans tensor
-        # if args.model == "llama":
-        #     if logits_ans.shape[1] < 256:
-        #         padding = torch.zeros(logits_ans.shape[0], 256 - logits_ans.shape[1], logits_ans.shape[2])
-        #         logits_ans = torch.cat((logits_ans, padding), dim=1)
-
-        # elif args.model == "gemma":
         if logits_ans.shape[0] < 256:
             padding = torch.zeros(256 - logits_ans.shape[0], logits_ans.shape[1])
             logits_ans = torch.cat((logits_ans, padding), dim=0)
 
-            
-        print(f"Shape logits_ans after padding {logits_ans.shape}")
         max_val, idx = torch.max(logits_ans, dim=-1)
-
-        print(f"Shape idx : {idx.shape}")
-        print(f"Shape max_val : {max_val.shape}")
-
         tensor_ans[i, 0, :] = idx
-        
         tensor_ans[i, 1, :] = max_val
 
-
         logits_follow_up = logits_follow_up.cpu().to(torch.float16)
-        # print(f"Logits follow up shape : {logits_follow_up.shape}")
-        # Add padding to the logits_follow_up tensor
-        print(f"Shape logits_follow_up before padding {logits_follow_up.shape}")
-        # if args.model == "llama":
-        #     if logits_follow_up.shape[1] < 64:
-        #         padding = torch.zeros(logits_follow_up.shape[0], 64 - logits_follow_up.shape[1], logits_follow_up.shape[2])
-        #         logits_follow_up = torch.cat((logits_follow_up, padding), dim=1)
-
-        # elif args.model == "gemma":
         if logits_follow_up.shape[0] < 64:
             padding = torch.zeros(64 - logits_follow_up.shape[0], logits_follow_up.shape[1])
             logits_follow_up = torch.cat((logits_follow_up, padding), dim=0)
 
-        print(f"Shape logits_follow_up after padding {logits_follow_up.shape}")
         max_val, idx = torch.max(logits_follow_up, dim=-1)
-        print(f"Shape idx : {idx.shape}")
-        print(f"Shape max_val : {max_val.shape}")
-        # print(f"Shape max _val {max_val.shape}")
-        # print(f"Shape idx {idx.shape}")
         tensor_follow_up[i, 0, :] = idx
         tensor_follow_up[i, 1, :] = max_val
-        
-        # Empty the cache
+
         torch.cuda.empty_cache()
 
-        # If i is a multiple of 100, save the tensors to disk
         if i % 100 == 0:
-            path = filepath.replace('data/', f'data/{args.model}/tensors/').replace('.json', f'-ans.pt')
+            path = tensor_path + f"{args.split}_ans.pt"
             torch.save(tensor_ans, path)
-            path = filepath.replace('data/', f'data/{args.model}/tensors/').replace('.json', f'-follow-up.pt')
+            path = tensor_path + f"{args.split}_follow-up.pt"
             torch.save(tensor_follow_up, path)
 
-    path = filepath.replace('data/', f'data/{args.model}/tensors/').replace('.json', f'-ans.pt')
+    path = tensor_path + f"{args.split}_ans.pt"
     torch.save(tensor_ans, path)
-    path = filepath.replace('data/', f'data/{args.model}/tensors/').replace('.json', f'-follow-up.pt')
+    path = tensor_path + f"{args.split}_follow-up.pt"
     torch.save(tensor_follow_up, path)
 
 def save_json_file(data, filepath):
@@ -170,49 +125,38 @@ def save_json_file(data, filepath):
     with open(filepath, "w") as file:
         json.dump(data, file, indent=4)
 
-def main(pipeline):
-    """Main function to process all datasets."""
-    # Create the parser
+def main(args):
+    """Main function to process the dataset."""
+    set_all_seeds(args.seed)
+    
+    model_id = args.model
+    tokenizer = AutoTokenizer.from_pretrained(model_id, token=args.token)
 
-    # process_dataset(VALID_FILE, pipeline)
-    # process_dataset(TRAIN_FILE, pipeline)
-    process_dataset(TEST_FILE, pipeline)
+    if "gemma" in model_id:
+        from transformers import Gemma2ForCausalLM
+        model = Gemma2ForCausalLM.from_pretrained(model_id, token=args.token)
 
-# Example usage:
-# Assuming you have a defined pipeline, you can call the main function:
-# main(pipeline)
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Your script description here")
+    elif "meta-llama" in model_id:
+        from transformers import LlamaForCausalLM
+        model = LlamaForCausalLM.from_pretrained(model_id, token=args.token)
 
-    # Add arguments
-    parser.add_argument('--model', default='llama', type=str, required=True, help='Path to the input file')
-
-    # Parse the arguments
-    args = parser.parse_args()
-
-    # Example usage
-    seed_value = 42
-    set_all_seeds(seed_value)
-
-    device = "cuda"
-    access_token="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"
-
-    if args.model == "llama":
-        model_id = "meta-llama/Meta-Llama-3.1-8B-Instruct"
-        tokenizer = AutoTokenizer.from_pretrained(model_id, token=access_token)
-        model = LlamaForCausalLM.from_pretrained(model_id, token=access_token)
-
-
-    elif args.model == "gemma":
-        model_id ="google/gemma-2-9b-it"
-        tokenizer = AutoTokenizer.from_pretrained(model_id, token=access_token)
-        model = Gemma2ForCausalLM.from_pretrained(model_id, token=access_token)
-
-    print("==================================")
-    print(f"Model and tokenizer for {args.model} initialized")
-    print("==================================")
+    
+    # Make folder for model output
+    os.makedirs(f"{args.folder_path}/{model_id.split('/')[-1]}/tensors/", exist_ok=True)
 
     model = model.to(device)
     model.generation_config.pad_token_id = tokenizer.pad_token_id
 
-    main(pipeline)  # Replace `pipeline` with your actual pipeline instance
+    process_dataset(model, tokenizer)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Script for generating LLM responses")
+    parser.add_argument('--model', type=str, required=True, help='Model to use ["google/gemma-2-9b-it", "meta-llama/Meta-Llama-3.1-8B-Instruct"]', default="meta-llama/Meta-Llama-3.1-8B-Instruct")
+    parser.add_argument('--split', type=str, required=True, help='Split to process ["train", "valid", "test"]')
+    parser.add_argument('--folder_path', type=str, required=True, help='Path to data')
+    parser.add_argument('--seed', type=int, default=42, help='Random seed')
+    parser.add_argument('--token', type=str, required=True, help='Hugging Face API token')
+
+    args = parser.parse_args()
+
+    main(args)
