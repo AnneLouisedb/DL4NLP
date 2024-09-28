@@ -9,3 +9,17 @@ Put train.json, valid.json and test.json in the data map.
 
 Run `make_dataset.py` on all the splits.
 
+## Possible models
+```
+meta-llama/Llama-3.1-9B-Instruct
+```
+
+```
+meta-llama/Llama-3.1-70B-Instruct
+```
+```
+google/gemma-2-9b-it
+```
+```
+google/gemma-2-27b-it
+```
