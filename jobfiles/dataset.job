@@ -5,8 +5,8 @@
 #SBATCH --job-name=DATASET
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=18
-#SBATCH --time=14:00:00
-#SBATCH --output=DL4NLP/jobfiles/output/dataset_gemma_test_%A.out
+#SBATCH --time=04:00:00
+#SBATCH --output=slurm_%A.out
 
 module purge
 module load 2022
@@ -19,19 +19,14 @@ PYTHON_VERSION="3.10"
 echo "Activating the environment $ENV_NAME"
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate $ENV_NAME
-# pip install numpy
-# pip install sentencepiece
+
 # Set your Hugging Face token
-HF_TOKEN="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"
-
-# Log in using the token
-# echo $HF_TOKEN | huggingface-cli login --token
+HF_TOKEN=YOUR_HF_TOKEN
 
 
-cd "/home/scur1744/DL4NLP/scripts"
-
-srun python make_dataset_automodel.py --model gemma
-
-echo "--------------------------------------------------------------- "
-echo "END OF FILE"
-echo "--------------------------------------------------------------- "
+srun python scripts/make_dataset.py \
+    --model google/gemma-2-9b-it \
+    --split train \
+    --folder_path /home/scur1744/data_mini \
+    --seed 42 \
+    --token $HF_TOKEN
