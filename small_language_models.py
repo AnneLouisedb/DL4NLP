@@ -32,7 +32,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def make_perturbations(model_name, split, n_pertubations=5, alphas = [0.2], span_length = 1, ceil_pct=False) -> List[float]:
+def make_perturbations(model_name, split, n_pertubations=5, alphas = [0.2], span_length = 1) -> List[float]:
     file_path = f'data/{model_name}/{split}.json'
 
     if not os.path.exists(file_path):
@@ -55,7 +55,7 @@ def make_perturbations(model_name, split, n_pertubations=5, alphas = [0.2], span
                     texts = [text]
                     masked_texts = []
                     for _ in range(n_pertubations):
-                        masked_texts.append([tokenize_and_mask(x, span_length, alpha, ceil_pct) for x in texts])
+                        masked_texts.append([tokenize_and_mask(x, span_length, alpha) for x in texts])
 
                     item[f"{key}_alpha_{alpha}_{n_pertubations}_noised"] = masked_texts
 
@@ -220,7 +220,6 @@ if __name__ == "__main__":
     parser.add_argument("--n_perturbations", type=int, default=5, help="Number of perturbations to create.")
     parser.add_argument("--alphas", type=float, nargs='+', default=[0.2], help="List of alpha values for perturbations.")
     parser.add_argument("--span_length", type=int, default=1, help="Length of the span to mask.") # USE 1, not more
-    #parser.add_argument("--ceil_pct", action='store_true', help="Use ceiling percentage for masking.") # ignore
     parser.add_argument("--mask_model", type=str, required=True, choices=['llama', 'T5-small', 'T5-large'], help="Model to use for denoising.")
     parser.add_argument("--detector_model", type=str, default="base_model", help="Model to use for detection (defaults to base_model).")
 
