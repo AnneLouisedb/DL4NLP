@@ -1,5 +1,7 @@
 # Detecting Machine Generated Text vs. Human Generated Text
 
+python3 -m venv DL4NLP source DL4NLP/bin/activate pip install -r requirements.txt
+
 ## Use
 Start by downloading the FollowupQ dataset. TODO add link
 
