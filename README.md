@@ -1,6 +1,5 @@
 # Detecting Machine Generated Text vs. Human Generated Text
 
-python3 -m venv DL4NLP source DL4NLP/bin/activate pip install -r requirements.txt
 
 ## Use
 Start by downloading the FollowupQ dataset. TODO add link
@@ -57,14 +56,11 @@ srun python scripts/small_language_models.py \
     --n_perturbations 5 \
     --detector_model $MODEL
 ```
+## Compatible Models
+```
+meta-llama/Llama-3.1-8B-Instruct
+```
 
-```
-meta-llama/Llama-3.1-9B-Instruct
-```
-
-```
-meta-llama/Llama-3.1-70B-Instruct
-```
 ```
 google/gemma-2-9b-it
 ```

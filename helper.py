@@ -13,12 +13,13 @@ from transformers import T5ForConditionalGeneration, T5Tokenizer
 # T5tokenizer_large = T5Tokenizer.from_pretrained(model_name)
 # T5model_large = T5ForConditionalGeneration.from_pretrained(model_name)
 
-# model_name = "t5-small"
-# T5tokenizer_small = T5Tokenizer.from_pretrained(model_name)
-# T5model_small = T5ForConditionalGeneration.from_pretrained(model_name)
+model_name = "t5-small"
+T5tokenizer_small = T5Tokenizer.from_pretrained(model_name)
+T5model_small = T5ForConditionalGeneration.from_pretrained(model_name)
 
 
 ############################### HELPER FUNCTIONS ####################
+device = 'cuda'
 def softmax(x):
     e_x = np.exp(x - np.max(x))
     return e_x / e_x.sum(axis=-1, keepdims=True)
@@ -30,7 +31,7 @@ def get_ll(model, tokenizer, text):
     """
     try:
         # Tokenize the input text
-        inputs = tokenizer(text, return_tensors='pt')
+        inputs = tokenizer(text, return_tensors='pt').to(device)
         input_ids = inputs['input_ids']
 
         # Forward pass to get logits
@@ -274,4 +275,3 @@ def tokenize_and_mask(text, span_length, pct, ceil_pct=False, max_attempts=5) ->
     text = " ".join(tokens)
 
     return text
-

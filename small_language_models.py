@@ -1,19 +1,14 @@
-from transformers import AutoModelForCausalLM, AutoTokenizer,LlamaForCausalLM,Gemma2ForCausalLM
-import itertools
-from typing import Callable
+from transformers import AutoTokenizer, LlamaForCausalLM, Gemma2ForCausalLM
 import numpy as np
 from tqdm import tqdm
 from typing import List
-from sklearn.metrics.pairwise import cosine_similarity
 from transformers import AutoTokenizer
 import torch 
 import math
-import re
-import time
 import logging
 import os
 import json
-from typing import List, Dict
+from typing import List
 import argparse
 import csv
 import random
@@ -31,9 +26,8 @@ disable_tqdm = True
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
-def make_perturbations(model_name, split, n_pertubations=5, alphas = [0.2], span_length = 1) -> List[float]:
-    file_path = f'data/{model_name}/{split}.json'
+def make_perturbations(model_name, file_path, n_pertubations=5, alphas=[0.2], span_length=1, ceil_pct=False) -> List[float]:
+    # Use file_path instead of hardcoded file path
 
     if not os.path.exists(file_path):
         print(f"File not found: {file_path}")
@@ -41,9 +35,8 @@ def make_perturbations(model_name, split, n_pertubations=5, alphas = [0.2], span
     
     with open(file_path, 'r') as file:
         data = json.load(file)
-        data = data[:5] # REMOVE
        
-    for item in tqdm(data, desc=f"Processing {split} data"):
+    for item in tqdm(data):
         for key in ['answer', 'follow-up', 'answer-llm', 'follow-up-llm']:
             if key in item:
                 text = item[key]
@@ -55,48 +48,19 @@ def make_perturbations(model_name, split, n_pertubations=5, alphas = [0.2], span
                     texts = [text]
                     masked_texts = []
                     for _ in range(n_pertubations):
-                        masked_texts.append([tokenize_and_mask(x, span_length, alpha) for x in texts])
+                        masked_texts.append([tokenize_and_mask(x, span_length, alpha, ceil_pct) for x in texts])
 
                     item[f"{key}_alpha_{alpha}_{n_pertubations}_noised"] = masked_texts
 
-
-    output_file_path = f'data/{model_name}/{split}.json'
+    output_file_path = file_path  # Save back to the same file or modify as needed
     with open(output_file_path, 'w') as file:
         json.dump(data, file, indent=4)
 
     return
 
 
-def denoise_with_llm(model_name, mask_model, split, n_pertubations, alphas = [0.2]) -> List[float]:
-    """
-    Denoises text data using a specified language model.
-
-    Args:
-        model_name (str): 
-            The name of the model that generated the dataset (e.g., 'human', 'llama', 'gemma').
-        
-        mask_model (str): 
-            The model used for replacing the masked tokens. Options include 'llama', 'T5-small', or 'T5-large'.
-        
-        split (str): 
-            The dataset split to process (e.g., 'train', 'test').
-        
-        n_pertubations (int, optional): 
-            The number of perturbations to create. 
-        
-        alphas (List[float], optional): 
-            A list of alpha values for perturbation severity. Defaults to [0.2].
-
-    Returns:
-        List[str]: 
-            A list of denoised texts resulting from the application of the mask model to the noised input texts.
-    """
-    
-    if model_name == 'human':
-        file_path = f'data/{split}.json'
-
-    else:
-        file_path = f'data/{model_name}/{split}.json'
+def denoise_with_llm(model_name, mask_model, file_path, n_pertubations, alphas=[0.2]) -> List[float]:
+    # Use file_path instead of hardcoded file path
 
     if not os.path.exists(file_path):
         print(f"File not found: {file_path}")
@@ -104,65 +68,40 @@ def denoise_with_llm(model_name, mask_model, split, n_pertubations, alphas = [0.
     
     with open(file_path, 'r') as file:
         data = json.load(file)
-        data = data[:5] # REMOVE
         
-    for item in tqdm(data, desc=f"Processing {split} data"):
+    for item in tqdm(data):
         for key in ['answer', 'follow-up', 'answer-llm', 'follow-up-llm']:
             if key in item:
                 for alpha in alphas:
-                    # Access the noised texts
                     noised_texts = item.get(f"{key}_alpha_{alpha}_{n_pertubations}_noised", []) 
-
-                    # Apply denoising with the model - THIS WILL TAKE A LONG TIME
-
                     logger.info(f"Starting to process noised texts")
                     if mask_model == 'llama':
-
                         perturbed_texts = replace_masks_llama_cpp(noised_texts, base_model) 
-                        
                     elif mask_model == 'T5-small':
-                        perturbed_texts = []
-
-                        for text in noised_texts:
-                            pertrub = fill_masks_with_t5(text, model_name='t5-small')
-                            perturbed_texts.append([pertrub]) 
-                       
+                        perturbed_texts = [fill_masks_with_t5(text, model_name='t5-small') for text in noised_texts]
                     elif mask_model == 'T5-large':
-                        perturbed_texts = []
-                        for text in noised_texts:
-                            pertrub =  fill_masks_with_t5(text, model_name='t5-large')
-                            perturbed_texts.append([pertrub]) 
+                        perturbed_texts = [fill_masks_with_t5(text, model_name='t5-large') for text in noised_texts]
 
-                        
                     item[f"{key}_alpha_{alpha}_{n_pertubations}_{mask_model}_denoised"] = perturbed_texts
                     logger.info("Added filled perturbations")
 
-                    
     with open(file_path, 'w') as file:
         json.dump(data, file, indent=4)
 
     print(f"Processed filled perturbations, saved to: {file_path}")
     return
 
-def return_scores(detector_model, split, tokenizer, model_name, mask_model, n_pertubations, alphas):
+def return_scores(detector_model, tokenizer, model_name, mask_model, file_path, n_pertubations, alphas):
+    csv_file_path = f"results_detector_{args.detector_model.split('/')[-1]}.csv"
 
-    csv_file_path = f'results_detector_{args.detector_model}.csv'
     file_exists = os.path.isfile(csv_file_path)
 
     with open(csv_file_path, 'w', newline='') as csvfile:
         csvwriter = csv.writer(csvfile)
-        # Write header
         if not file_exists:
             csvwriter.writerow(['Key', 'Alpha', 'N_Perturbations', 'Mask_Model', 'Original_Curvature', 'Normalized_Curvature'])
 
-    if detector_model == 'base_model':
-        detector_model = base_model
-
-    if model_name == 'human':
-        file_path = f'data/{split}.json'
-
-    else:
-        file_path = f'data/{model_name}/{split}.json'
+    file_path = file_path
 
     if not os.path.exists(file_path):
         print(f"File not found: {file_path}")
@@ -171,20 +110,18 @@ def return_scores(detector_model, split, tokenizer, model_name, mask_model, n_pe
     with open(file_path, 'r') as file:
         data = json.load(file)
       
-    for item in tqdm(data, desc=f"Processing {split} data"):
+    for item in tqdm(data):
         for key in ['answer', 'follow-up', 'answer-llm', 'follow-up-llm']:
             if key in item:
                 original_text = item[key]
-
                 if isinstance(original_text, str):
                     original_text = [original_text]
 
                 original_ll = get_ll(detector_model, tokenizer, original_text[0])
 
                 for alpha in alphas:
-                    # Access the denoised texts - this is a list of perturbations
                     denoised_texts = item.get(f"{key}_alpha_{alpha}_{n_pertubations}_{mask_model}_denoised", [])
-                    perturbed_lls = get_lls(detector_model, tokenizer, denoised_texts, disable_tqdm) # if one of theme is None (ignore the following lines)
+                    perturbed_lls = get_lls(detector_model, tokenizer, denoised_texts, disable_tqdm)
                     
                     mean_perturbed_lls = np.mean([i for i in perturbed_lls if not math.isnan(i) and i is not None])
                     std_perturbed_lls = np.std([i for i in perturbed_lls if not math.isnan(i)]) if (len([i for i in perturbed_lls if not (math.isnan(i) or 0)]) > 1) else 1
@@ -192,34 +129,33 @@ def return_scores(detector_model, split, tokenizer, model_name, mask_model, n_pe
                     curvature_normalized = (original_ll - mean_perturbed_lls) / std_perturbed_lls
                     original_curvature = (original_ll - mean_perturbed_lls)
 
-                    item[f"RESULT_{key}_alpha_{alpha}_{n_pertubations}_{mask_model}_denoised"]  = [str(original_curvature), str(curvature_normalized)]
-                    # write to output file with one column original, one normalized curvature add column for key, alpha, n_pertrubations, mask model
-                    # output to CSV file
-                    # Write to CSV
+                    item[f"RESULT_{key}_alpha_{alpha}_{n_pertubations}_model_{model_name}_maskmodel_{args.mask_model}_detectormodel_{args.detector_model}_denoised"]  = [str(original_curvature), str(curvature_normalized)]
+                    item[f"PERTURBED_LLS_{key}_alpha_{alpha}_{n_pertubations}_model_{model_name}_maskmodel_{args.mask_model}_detectormodel_{args.detector_model}_denoised"]  = perturbed_lls
+
                     with open(csv_file_path, 'a', newline='') as csvfile:
                         csvwriter = csv.writer(csvfile)
-                        csvwriter.writerow([key,alpha, n_pertubations, mask_model, original_curvature, curvature_normalized])
+                        csvwriter.writerow([key, alpha, n_pertubations, mask_model, original_curvature, curvature_normalized])
                                
     with open(file_path, 'w') as file:
         json.dump(data, file, indent=4)
         
-        print(f"Processed filled perturbations, saved to: {file_path}")
+    print(f"Processed filled perturbations, saved to: {file_path}")
 
     return
-
-
 
 ###### RUN THE MAIN #######
 
 if __name__ == "__main__":
-    
-    # Argument parser setup
     parser = argparse.ArgumentParser(description="Process and perturb text data.")
     parser.add_argument("--model_name", type=str, required=True, help="Name of the model that generated the data.")
-    parser.add_argument("--split", type=str, required=True, help="Data split to process (e.g., train, test).")
+    # parser.add_argument("--split", type=str, required=True, help="Data split to process (e.g., train, test).")
+    parser.add_argument("--file_path", type=str, required=True, help="Path to the input JSON file.")
     parser.add_argument("--n_perturbations", type=int, default=5, help="Number of perturbations to create.")
     parser.add_argument("--alphas", type=float, nargs='+', default=[0.2], help="List of alpha values for perturbations.")
-    parser.add_argument("--span_length", type=int, default=1, help="Length of the span to mask.") # USE 1, not more
+    parser.add_argument("--span_length", type=int, default=1, help="Length of the span to mask.")
+    parser.add_argument("--make_perturbations", type=bool, default=True, help="Perturbations need to be created")
+    parser.add_argument("--denoise_with_llm", type=bool, default=True, help="Text needs to be denoised")
+    parser.add_argument("--return_scores", type=bool, default=True, help="Calculating the scores")
     parser.add_argument("--mask_model", type=str, required=True, choices=['llama', 'T5-small', 'T5-large'], help="Model to use for denoising.")
     parser.add_argument("--detector_model", type=str, default="base_model", help="Model to use for detection (defaults to base_model).")
 
@@ -229,18 +165,19 @@ if __name__ == "__main__":
     set_all_seeds(seed_value)
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    access_token="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"
+    access_token = "YOUR_ACCESS_TOKEN"
 
-    if args.detector_model == "llama":
-        model_id = "meta-llama/Meta-Llama-3.1-8B-Instruct"
-        tokenizer = AutoTokenizer.from_pretrained(model_id, token=access_token)
+    model_id = args.detector_model
+    tokenizer = AutoTokenizer.from_pretrained(model_id, token=access_token)
+
+    if "llama" in args.detector_model:
         base_model = LlamaForCausalLM.from_pretrained(model_id, token=access_token)
 
-
-    elif args.detector_model == "gemma":
-        model_id ="google/gemma-2-9b-it"
+    if "gemma" in args.detector_model:
         tokenizer = AutoTokenizer.from_pretrained(model_id, token=access_token)
         base_model = Gemma2ForCausalLM.from_pretrained(model_id, token=access_token)
+
+    base_model.to('cuda')
 
     print("==================================")
     print(f"Model and tokenizer for {args.detector_model} initialized")
@@ -249,37 +186,40 @@ if __name__ == "__main__":
     base_model = base_model.to(device)
     base_model.generation_config.pad_token_id = tokenizer.pad_token_id
 
+    
 
-    # Run the main processing functions
-    logger.info("Starting perturbation generation...")
- 
-    # make_perturbations(
-    #     model_name=args.model_name,
-    #     split=args.split,
-    #     n_pertubations=args.n_perturbations,
-    #     alphas=args.alphas)
+    if args.make_perturbations:
+        logger.info("Starting perturbation generation...")
+        make_perturbations(
+            model_name=args.model_name,
+            # split=args.split,
+            file_path=args.file_path,
+            n_pertubations=args.n_perturbations,
+            alphas=args.alphas
+        )
 
-    logger.info(f"Starting denoising with the LLM.. {args.mask_model}")
+    if args.denoise_with_llm:
+        logger.info(f"Starting denoising with the LLM.. {args.mask_model}")
 
-    # denoise_with_llm(
-    #     model_name=args.model_name, # Path to the generated dataset (e.g. Llama created the test set)
-    #     mask_model=args.mask_model,
-    #     split=args.split,
-    #     n_pertubations=args.n_perturbations,
-    #     alphas=args.alphas
-    # )
+        denoise_with_llm(
+            model_name=args.model_name,
+            mask_model=args.mask_model,
+            # split=args.split,
+            file_path=args.file_path,
+            n_pertubations=args.n_perturbations,
+            alphas=args.alphas
+        )
 
-    logger.info("Processing complete. Now we need to get the log likelihood scores!")
+    if return_scores:
+        logger.info("Processing complete. Now we need to get the log likelihood scores!")
 
-    return_scores(
-        detector_model = base_model,
-        split=args.split,
-        tokenizer = tokenizer,
-        model_name=args.model_name,
-        mask_model=args.mask_model,
-        n_pertubations=args.n_perturbations,
-        alphas=args.alphas)
-
-
-# example: python small_language_models.py --model_name 'llama' --split 'train' --mask_model 'T5-small' --n_perturbations 5 --detector_model 'llama'
-
+        return_scores(
+            detector_model=base_model,
+            # split=args.split,
+            tokenizer=tokenizer,
+            model_name=args.model_name,
+            mask_model=args.mask_model,
+            file_path=args.file_path,
+            n_pertubations=args.n_perturbations,
+            alphas=args.alphas
+        )
