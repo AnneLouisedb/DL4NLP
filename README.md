@@ -50,11 +50,15 @@ MODEL=meta-llama/Llama-3.1-9B-Instruct
 MASK_MODEL=T5-small
 MASK_MODEL=T5-large
 srun python scripts/small_language_models.py \
-    --file_path FILE-PATH-WITH-LLM-ANSWERS-AND-FOLLOW-UPS \
+    --file_path /home/scur1744/data/gemma/train.json \
+    --hf_token HUGGINGFACE_TOKEN \
     --model_name $MODEL \
-    --mask_model $MASK_MODEL \
+    --mask_model 'T5-small' \
     --n_perturbations 5 \
-    --detector_model $MODEL
+    --detector_model $DETECT_MODEL \
+    --make_perturbations False \
+    --denoise_with_llm False \
+    --return_scores True
 ```
 ## Compatible Models
 ```
