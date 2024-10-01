@@ -26,7 +26,7 @@ disable_tqdm = True
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def make_perturbations(model_name, file_path, n_pertubations=5, alphas=[0.2], span_length=1, ceil_pct=False) -> List[float]:
+def make_perturbations(file_path, n_pertubations=5, alphas=[0.2], span_length=1, ceil_pct=False) -> List[float]:
     # Use file_path instead of hardcoded file path
 
     if not os.path.exists(file_path):
@@ -37,7 +37,7 @@ def make_perturbations(model_name, file_path, n_pertubations=5, alphas=[0.2], sp
         data = json.load(file)
        
     for item in tqdm(data):
-        for key in ['answer', 'follow-up', 'answer-llm', 'follow-up-llm']:
+        for key in ['answer', 'answer-llm']:
             if key in item:
                 text = item[key]
 
@@ -59,7 +59,7 @@ def make_perturbations(model_name, file_path, n_pertubations=5, alphas=[0.2], sp
     return
 
 
-def denoise_with_llm(model_name, mask_model, file_path, n_pertubations, alphas=[0.2]) -> List[float]:
+def denoise_with_llm(mask_model, file_path, n_pertubations, alphas=[0.2]) -> List[float]:
     # Use file_path instead of hardcoded file path
 
     if not os.path.exists(file_path):
@@ -70,7 +70,7 @@ def denoise_with_llm(model_name, mask_model, file_path, n_pertubations, alphas=[
         data = json.load(file)
         
     for item in tqdm(data):
-        for key in ['answer', 'follow-up', 'answer-llm', 'follow-up-llm']:
+        for key in ['answer', 'answer-llm']:
             if key in item:
                 for alpha in alphas:
                     noised_texts = item.get(f"{key}_alpha_{alpha}_{n_pertubations}_noised", []) 
@@ -111,7 +111,7 @@ def return_scores(detector_model, tokenizer, model_name, mask_model, file_path, 
         data = json.load(file)
       
     for item in tqdm(data):
-        for key in ['answer', 'follow-up', 'answer-llm', 'follow-up-llm']:
+        for key in ['answer', 'answer-llm']:
             if key in item:
                 original_text = item[key]
                 if isinstance(original_text, str):
@@ -148,6 +148,7 @@ def return_scores(detector_model, tokenizer, model_name, mask_model, file_path, 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process and perturb text data.")
     parser.add_argument("--model_name", type=str, required=True, help="Name of the model that generated the data.")
+    parser.add_argument("--hf_token", type=str, required=True, help="Private huggingface access token.")
     # parser.add_argument("--split", type=str, required=True, help="Data split to process (e.g., train, test).")
     parser.add_argument("--file_path", type=str, required=True, help="Path to the input JSON file.")
     parser.add_argument("--n_perturbations", type=int, default=5, help="Number of perturbations to create.")
@@ -165,7 +166,7 @@ if __name__ == "__main__":
     set_all_seeds(seed_value)
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    access_token = "YOUR_ACCESS_TOKEN"
+    access_token = args.hf_token
 
     model_id = args.detector_model
     tokenizer = AutoTokenizer.from_pretrained(model_id, token=access_token)
@@ -174,10 +175,7 @@ if __name__ == "__main__":
         base_model = LlamaForCausalLM.from_pretrained(model_id, token=access_token)
 
     if "gemma" in args.detector_model:
-        tokenizer = AutoTokenizer.from_pretrained(model_id, token=access_token)
         base_model = Gemma2ForCausalLM.from_pretrained(model_id, token=access_token)
-
-    base_model.to('cuda')
 
     print("==================================")
     print(f"Model and tokenizer for {args.detector_model} initialized")
@@ -191,7 +189,7 @@ if __name__ == "__main__":
     if args.make_perturbations:
         logger.info("Starting perturbation generation...")
         make_perturbations(
-            model_name=args.model_name,
+            # model_name=args.model_name,
             # split=args.split,
             file_path=args.file_path,
             n_pertubations=args.n_perturbations,
@@ -202,7 +200,7 @@ if __name__ == "__main__":
         logger.info(f"Starting denoising with the LLM.. {args.mask_model}")
 
         denoise_with_llm(
-            model_name=args.model_name,
+            # model_name=args.model_name,
             mask_model=args.mask_model,
             # split=args.split,
             file_path=args.file_path,

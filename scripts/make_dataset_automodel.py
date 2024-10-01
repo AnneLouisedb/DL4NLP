@@ -50,24 +50,9 @@ def generate_llm_responses(datapoint, model, tokenizer):
         skip_special_tokens=True,
     )
 
-    follow_up_prompt = f"Give one follow-up question for: {answer}"
-    inputs_follow_up = tokenizer([follow_up_prompt], return_tensors="pt").to(device)
-
-    with torch.no_grad():
-        outputs_follow_up = model.generate(**inputs_follow_up, return_dict_in_generate=True, output_logits=True, max_new_tokens=64)
-        
-    inputs_follow_up = inputs_follow_up.to('cpu')
-    logits_follow_up = torch.stack(outputs_follow_up.logits).squeeze(1)
-    sequence_follow_up = outputs_follow_up.sequences
-    follow_up = tokenizer.batch_decode(
-        sequence_follow_up[:, inputs_follow_up.input_ids.shape[1]:], 
-        skip_special_tokens=True
-    )
-
     datapoint['answer-llm'] = answer
-    datapoint['follow-up-llm'] = follow_up
 
-    return datapoint, logits_answer, logits_follow_up
+    return datapoint, logits_answer
 
 def process_dataset(model, tokenizer):
     """Process a dataset by generating LLM responses and saving the updated data iteratively."""
@@ -82,10 +67,9 @@ def process_dataset(model, tokenizer):
 
     print(f"Generating LLM responses for {args.split} split...")
     tensor_ans = torch.zeros(len(data), 2, 256)
-    tensor_follow_up = torch.zeros(len(data), 2, 64)
 
     for i, datapoint in tqdm(enumerate(data)):
-        datapoint, logits_ans, logits_follow_up = generate_llm_responses(datapoint, model, tokenizer)
+        datapoint, logits_ans = generate_llm_responses(datapoint, model, tokenizer)
 
         save_json_file(data, save_path + args.split + '.json')
 
@@ -98,27 +82,14 @@ def process_dataset(model, tokenizer):
         tensor_ans[i, 0, :] = idx
         tensor_ans[i, 1, :] = max_val
 
-        logits_follow_up = logits_follow_up.cpu().to(torch.float16)
-        if logits_follow_up.shape[0] < 64:
-            padding = torch.zeros(64 - logits_follow_up.shape[0], logits_follow_up.shape[1])
-            logits_follow_up = torch.cat((logits_follow_up, padding), dim=0)
-
-        max_val, idx = torch.max(logits_follow_up, dim=-1)
-        tensor_follow_up[i, 0, :] = idx
-        tensor_follow_up[i, 1, :] = max_val
-
         torch.cuda.empty_cache()
 
         if i % 100 == 0:
             path = tensor_path + f"{args.split}_ans.pt"
             torch.save(tensor_ans, path)
-            path = tensor_path + f"{args.split}_follow-up.pt"
-            torch.save(tensor_follow_up, path)
 
     path = tensor_path + f"{args.split}_ans.pt"
     torch.save(tensor_ans, path)
-    path = tensor_path + f"{args.split}_follow-up.pt"
-    torch.save(tensor_follow_up, path)
 
 def save_json_file(data, filepath):
     """Save data to a JSON file."""
