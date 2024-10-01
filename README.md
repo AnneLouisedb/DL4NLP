@@ -62,7 +62,7 @@ srun python scripts/small_language_models.py \
 ```
 ## Compatible Models
 ```
-meta-llama/Llama-3.1-8B-Instruct
+meta-llama/Meta-Llama-3-8B-Instruct
 ```
 
 ```
