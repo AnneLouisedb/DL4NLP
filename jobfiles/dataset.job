@@ -29,20 +29,20 @@ MODEL=meta-llama/Meta-Llama-3.1-8B-Instruct
 srun python DL4NLP/scripts/make_dataset.py \
     --model $MODEL \
     --split train \
-    --folder_path data \
+    --folder_path /data \
     --seed 42 \
     --token $HF_TOKEN
 
 srun python DL4NLP/scripts/make_dataset.py \
     --model $MODEL \
     --split valid \
-    --folder_path data \
+    --folder_path /data \
     --seed 42 \
     --token $HF_TOKEN
 
 srun python DL4NLP/scripts/make_dataset.py \
     --model $MODEL \
     --split test \
-    --folder_path data \
+    --folder_path /data \
     --seed 42 \
     --token $HF_TOKEN

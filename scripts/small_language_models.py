@@ -101,7 +101,7 @@ def denoise_with_llm(mask_model, file_path, n_pertubations, alphas=[0.2]) -> Lis
     return
 
 def return_scores(detector_model, tokenizer, model_name, mask_model, file_path, n_pertubations, alphas):
-    csv_file_path = f"results_detector_{args.detector_model.split('/')[-1]}.csv"
+    csv_file_path = f"results/results_detector_{args.detector_model.split('/')[-1]}.csv"
 
     file_exists = os.path.isfile(csv_file_path)
 
@@ -152,14 +152,15 @@ def return_scores(detector_model, tokenizer, model_name, mask_model, file_path, 
                         csvwriter = csv.writer(csvfile)
                         csvwriter.writerow([key, alpha, n_pertubations, mask_model, original_curvature, curvature_normalized])
 
-        if file_path == '/home/scur1744/data/gemma-2-9b-it/test.json':
-            out_path = '/home/scur1744/data/gemma-2-9b-it/test.json' 
-        elif file_exists == '/home/scur1744/data/Meta-Llama-3.1-8B-Instruct/test.json':
-            out_path ='/home/scur1744/data/Meta-Llama-3.1-8B-Instruct/test.json'
+        # out_path
+        # if file_path == '/home/scur1744/data/gemma-2-9b-it/test.json':
+        #     out_path = '/home/scur1744/data/gemma-2-9b-it/test.json' 
+        # elif file_exists == '/home/scur1744/data/Meta-Llama-3.1-8B-Instruct/test.json':
+        #     out_path ='/home/scur1744/data/Meta-Llama-3.1-8B-Instruct/test.json'
 
-        with open(out_path, 'w') as file:
+        with open(file_path, 'w') as file:
             json.dump(data, file, indent=4)   
-        print(f"Processed filled perturbations scores, saved to: {out_path}")
+        print(f"Processed filled perturbations scores, saved to: {file_path}")
 
     return
 

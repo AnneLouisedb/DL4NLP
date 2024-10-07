@@ -8,14 +8,11 @@ from typing import List, Dict
 from transformers import T5Tokenizer, T5ForConditionalGeneration
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 
-# Load models to fill the masked tokens
-model_name = "t5-large"
-T5tokenizer_large = T5Tokenizer.from_pretrained(model_name)
-T5model_large = T5ForConditionalGeneration.from_pretrained(model_name)
-
-# model_name = "t5-small"
-# T5tokenizer_small = T5Tokenizer.from_pretrained(model_name)
-# T5model_small = T5ForConditionalGeneration.from_pretrained(model_name)
+def set_mask_model(mask_model):
+    # Load models to fill the masked tokens
+    tokenizer = T5Tokenizer.from_pretrained(mask_model)
+    model = T5ForConditionalGeneration.from_pretrained(mask_model)
+    return tokenizer, model
 
 
 ############################### HELPER FUNCTIONS ####################
@@ -118,15 +115,7 @@ def process_and_group_tokens(output_tokens):
 def fill_masks_with_t5(texts, model_name="t5-small", mask_top_p=1.0, first_half = ""):
 
     filled_texts = []
-    
-    # Load the tokenizer and model
-    if model_name == "t5-large":
-        mask_tokenizer = T5tokenizer_large
-        mask_model = T5model_large
-
-    elif model_name == "t5-small":
-        mask_tokenizer = T5tokenizer_small
-        mask_model = T5model_small
+    mask_tokenizer, mask_model = set_mask_model(model_name)
 
     expected = [[x for x in text.split() if x.startswith("<extra_id_")] for text in texts]
     

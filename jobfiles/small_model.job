@@ -6,7 +6,7 @@
 #SBATCH \--ntasks=1
 #SBATCH \--cpus-per-task=18
 #SBATCH \--time=04:00:00
-#SBATCH \--output=slurm_%A.out
+#SBATCH --output=DL4NLP/jobfiles/output/small_model.out
 
 module purge
 module load 2022
@@ -14,7 +14,13 @@ module load Anaconda3/2022.05
 
 ENV_NAME="DL4NLP2"
 PYTHON_VERSION="3.10"
-MODEL="gemma"
+
+MODEL=meta-llama/Meta-Llama-3.1-8B-Instruct
+DIR_NAME=Meta-Llama-3.1-8B-Instruct
+
+# MODEL=google/gemma-2-9b-it
+# DIR_NAME=gemma-2-9b-it
+
 # Activate the new environment
 echo "Activating the environment $ENV_NAME"
 source "$(conda info \--base)/etc/profile.d/conda.sh"
@@ -23,9 +29,38 @@ conda activate $ENV_NAME
 
 echo "Running small_language_models.py"
 
-srun python small_language_models.py \
-    --file_path FILE-PATH-WITH-LLM-ANSWERS-AND-FOLLOW-UPS \
+HF_TOKEN=YOUR_HF_TOKEN
+
+srun python DL4NLP/scripts/small_language_models.py \
+    --file_path data_mini/$DIR_NAME/train.json \
     --model_name $MODEL \
     --mask_model 'T5-small' \
     --n_perturbations 5 \
-    --detector_model $MODEL
+    --detector_model $MODEL \
+    --make_perturbations True \
+    --denoise_with_llm True \
+    --return_scores True \
+    --hf_token $HF_TOKEN
+
+srun python DL4NLP/scripts/small_language_models.py \
+    --file_path data_mini/$DIR_NAME/valid.json \
+    --model_name $MODEL \
+    --mask_model 'T5-small' \
+    --n_perturbations 5 \
+    --detector_model $MODEL \
+    --make_perturbations True \
+    --denoise_with_llm True \
+    --return_scores True \
+    --hf_token $HF_TOKEN
+
+
+srun python DL4NLP/scripts/small_language_models.py \
+    --file_path data_mini/$DIR_NAME/test.json \
+    --model_name $MODEL \
+    --mask_model 'T5-small' \
+    --n_perturbations 5 \
+    --detector_model $MODEL \
+    --make_perturbations True \
+    --denoise_with_llm True \
+    --return_scores True \
+    --hf_token $HF_TOKEN
