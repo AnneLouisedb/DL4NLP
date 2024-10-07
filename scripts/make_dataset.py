@@ -34,7 +34,7 @@ def load_json_file(filepath):
 
 def generate_llm_responses(datapoint, model, tokenizer):
     """Generate LLM responses for a given datapoint using a pipeline."""
-    question = f"{datapoint['question']} Keep your answer short."
+    question = f"{datapoint['question']}"
 
     inputs = tokenizer([question], return_tensors="pt").to(device)
 
