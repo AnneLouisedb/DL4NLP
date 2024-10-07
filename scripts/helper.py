@@ -9,13 +9,13 @@ from transformers import T5Tokenizer, T5ForConditionalGeneration
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 
 # Load models to fill the masked tokens
-# model_name = "t5-large"
-# T5tokenizer_large = T5Tokenizer.from_pretrained(model_name)
-# T5model_large = T5ForConditionalGeneration.from_pretrained(model_name)
+model_name = "t5-large"
+T5tokenizer_large = T5Tokenizer.from_pretrained(model_name)
+T5model_large = T5ForConditionalGeneration.from_pretrained(model_name)
 
-model_name = "t5-small"
-T5tokenizer_small = T5Tokenizer.from_pretrained(model_name)
-T5model_small = T5ForConditionalGeneration.from_pretrained(model_name)
+# model_name = "t5-small"
+# T5tokenizer_small = T5Tokenizer.from_pretrained(model_name)
+# T5model_small = T5ForConditionalGeneration.from_pretrained(model_name)
 
 
 ############################### HELPER FUNCTIONS ####################

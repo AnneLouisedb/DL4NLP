@@ -14,7 +14,7 @@ import csv
 import random
 
 # local functions
-from helper import softmax, get_ll, get_lls, tokenize_and_mask, replace_masks_llama_cpp, fill_masks_with_t5
+from helper import get_ll, get_lls, tokenize_and_mask, replace_masks_llama_cpp, fill_masks_with_t5
 
 def set_all_seeds(seed):
     random.seed(seed)
@@ -53,6 +53,7 @@ def make_perturbations(file_path, n_pertubations=5, alphas=[0.2], span_length=1,
                     item[f"{key}_alpha_{alpha}_{n_pertubations}_noised"] = masked_texts
 
     output_file_path = file_path  # Save back to the same file or modify as needed
+   
     with open(output_file_path, 'w') as file:
         json.dump(data, file, indent=4)
 
@@ -73,6 +74,13 @@ def denoise_with_llm(mask_model, file_path, n_pertubations, alphas=[0.2]) -> Lis
         for key in ['answer', 'answer-llm']:
             if key in item:
                 for alpha in alphas:
+                    # check if this key exisis, else, pass "{key}_alpha_{alpha}_{n_pertubations}_{mask_model}_denoised"
+                    denoised_key = f"{key}_alpha_{alpha}_{n_pertubations}_{mask_model}_denoised"
+                    # Check if this key already exists, skip if it does
+                    if denoised_key in item:
+                        logger.info(f"Key {denoised_key} already exists. Skipping processing.")
+                        break
+
                     noised_texts = item.get(f"{key}_alpha_{alpha}_{n_pertubations}_noised", []) 
                     logger.info(f"Starting to process noised texts")
                     if mask_model == 'llama':
@@ -84,11 +92,12 @@ def denoise_with_llm(mask_model, file_path, n_pertubations, alphas=[0.2]) -> Lis
 
                     item[f"{key}_alpha_{alpha}_{n_pertubations}_{mask_model}_denoised"] = perturbed_texts
                     logger.info("Added filled perturbations")
+        
+        with open(file_path, 'w') as file:
+            json.dump(data, file, indent=4)
+            logger.info(f"Saved processed item to {file_path}")
+            
 
-    with open(file_path, 'w') as file:
-        json.dump(data, file, indent=4)
-
-    print(f"Processed filled perturbations, saved to: {file_path}")
     return
 
 def return_scores(detector_model, tokenizer, model_name, mask_model, file_path, n_pertubations, alphas):
@@ -121,6 +130,13 @@ def return_scores(detector_model, tokenizer, model_name, mask_model, file_path, 
 
                 for alpha in alphas:
                     denoised_texts = item.get(f"{key}_alpha_{alpha}_{n_pertubations}_{mask_model}_denoised", [])
+
+                    denoised_key = f"RESULT_{key}_alpha_{alpha}_{n_pertubations}_model_{model_name}_maskmodel_{args.mask_model}_detectormodel_{args.detector_model}_denoised"
+                    # Check if this key already exists, skip if it does
+                    if denoised_key in item:
+                        logger.info(f"Key {denoised_key} already exists. Skipping processing.")
+                        break
+                    
                     perturbed_lls = get_lls(detector_model, tokenizer, denoised_texts, disable_tqdm)
                     
                     mean_perturbed_lls = np.mean([i for i in perturbed_lls if not math.isnan(i) and i is not None])
@@ -129,17 +145,21 @@ def return_scores(detector_model, tokenizer, model_name, mask_model, file_path, 
                     curvature_normalized = (original_ll - mean_perturbed_lls) / std_perturbed_lls
                     original_curvature = (original_ll - mean_perturbed_lls)
 
-                    item[f"RESULT_{key}_alpha_{alpha}_{n_pertubations}_model_{model_name}_maskmodel_{args.mask_model}_detectormodel_{args.detector_model}_denoised"]  = [str(original_curvature), str(curvature_normalized)]
+                    item[f"RESULT_{key}_alpha_{alpha}_{n_pertubations}_model_{model_name}_maskmodel_{args.mask_model}_detectormodel_{args.detector_model}_denoised"]  = [str(original_curvature), str(curvature_normalized), original_ll]
                     item[f"PERTURBED_LLS_{key}_alpha_{alpha}_{n_pertubations}_model_{model_name}_maskmodel_{args.mask_model}_detectormodel_{args.detector_model}_denoised"]  = perturbed_lls
-
+                    
                     with open(csv_file_path, 'a', newline='') as csvfile:
                         csvwriter = csv.writer(csvfile)
                         csvwriter.writerow([key, alpha, n_pertubations, mask_model, original_curvature, curvature_normalized])
-                               
-    with open(file_path, 'w') as file:
-        json.dump(data, file, indent=4)
-        
-    print(f"Processed filled perturbations, saved to: {file_path}")
+
+        if file_path == '/home/scur1744/data/gemma-2-9b-it/test.json':
+            out_path = '/home/scur1744/data/gemma-2-9b-it/test.json' 
+        elif file_exists == '/home/scur1744/data/Meta-Llama-3.1-8B-Instruct/test.json':
+            out_path ='/home/scur1744/data/Meta-Llama-3.1-8B-Instruct/test.json'
+
+        with open(out_path, 'w') as file:
+            json.dump(data, file, indent=4)   
+        print(f"Processed filled perturbations scores, saved to: {out_path}")
 
     return
 
@@ -149,13 +169,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process and perturb text data.")
     parser.add_argument("--model_name", type=str, required=True, help="Name of the model that generated the data.")
     parser.add_argument("--hf_token", type=str, required=True, help="Private huggingface access token.")
-    # parser.add_argument("--split", type=str, required=True, help="Data split to process (e.g., train, test).")
     parser.add_argument("--file_path", type=str, required=True, help="Path to the input JSON file.")
     parser.add_argument("--n_perturbations", type=int, default=5, help="Number of perturbations to create.")
-    parser.add_argument("--alphas", type=float, nargs='+', default=[0.2], help="List of alpha values for perturbations.")
+    parser.add_argument("--alphas", type=float, nargs='+', default=[0.2, 0.3], help="List of alpha values for perturbations.")
     parser.add_argument("--span_length", type=int, default=1, help="Length of the span to mask.")
-    parser.add_argument("--make_perturbations", type=bool, default=True, help="Perturbations need to be created")
-    parser.add_argument("--denoise_with_llm", type=bool, default=True, help="Text needs to be denoised")
+    parser.add_argument("--make_perturbations", type=bool, default=False, help="Perturbations need to be created")
+    parser.add_argument("--denoise_with_llm", type=bool, default=False, help="Text needs to be denoised")
     parser.add_argument("--return_scores", type=bool, default=True, help="Calculating the scores")
     parser.add_argument("--mask_model", type=str, required=True, choices=['llama', 'T5-small', 'T5-large'], help="Model to use for denoising.")
     parser.add_argument("--detector_model", type=str, default="base_model", help="Model to use for detection (defaults to base_model).")
@@ -185,12 +204,9 @@ if __name__ == "__main__":
     base_model.generation_config.pad_token_id = tokenizer.pad_token_id
 
     
-
     if args.make_perturbations:
         logger.info("Starting perturbation generation...")
-        make_perturbations(
-            # model_name=args.model_name,
-            # split=args.split,
+        make_perturbations( 
             file_path=args.file_path,
             n_pertubations=args.n_perturbations,
             alphas=args.alphas
@@ -200,20 +216,17 @@ if __name__ == "__main__":
         logger.info(f"Starting denoising with the LLM.. {args.mask_model}")
 
         denoise_with_llm(
-            # model_name=args.model_name,
             mask_model=args.mask_model,
-            # split=args.split,
+            alphas = args.alphas,
             file_path=args.file_path,
             n_pertubations=args.n_perturbations,
-            alphas=args.alphas
         )
 
-    if return_scores:
+    if args.return_scores:
         logger.info("Processing complete. Now we need to get the log likelihood scores!")
 
         return_scores(
             detector_model=base_model,
-            # split=args.split,
             tokenizer=tokenizer,
             model_name=args.model_name,
             mask_model=args.mask_model,
