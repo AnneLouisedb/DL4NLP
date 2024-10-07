@@ -48,7 +48,7 @@ def generate_llm_responses(datapoint, model, tokenizer):
     answer = tokenizer.batch_decode(
         sequences[:, inputs.input_ids.shape[1]:], 
         skip_special_tokens=True,
-    ).cpu()
+    )
 
     datapoint['answer-llm'] = answer
 
@@ -78,7 +78,7 @@ def process_dataset(model, tokenizer):
             padding = torch.zeros(256 - logits_ans.shape[0], logits_ans.shape[1])
             logits_ans = torch.cat((logits_ans, padding), dim=0)
 
-        max_val, idx = torch.max(logits_ans, dim=-1).cpu()
+        max_val, idx = torch.max(logits_ans, dim=-1)
         tensor_ans[i, 0, :] = idx
         tensor_ans[i, 1, :] = max_val
 

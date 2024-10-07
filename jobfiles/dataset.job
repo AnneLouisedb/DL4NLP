@@ -6,13 +6,13 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=18
 #SBATCH --time=04:00:00
-#SBATCH --output=slurm_%A.out
+#SBATCH --output=jobfiles/output/make_datasets.out
 
 module purge
 module load 2022
 module load Anaconda3/2022.05
 
-ENV_NAME="DL4NLP"
+ENV_NAME="DL4NLP3"
 PYTHON_VERSION="3.10"
 
 # Activate the new environment
@@ -21,12 +21,28 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate $ENV_NAME
 
 # Set your Hugging Face token
-HF_TOKEN=YOUR_HF_TOKEN
+HF_TOKEN=HF_TOKEN
 
+# MODEL=google/gemma-2-9b-it
+MODEL=meta-llama/Meta-Llama-3.1-8B-Instruct
 
-srun python scripts/make_dataset.py \
-    --model google/gemma-2-9b-it \
+srun python DL4NLP/scripts/make_dataset.py \
+    --model $MODEL \
     --split train \
-    --folder_path /home/scur1744/data_mini \
+    --folder_path data \
+    --seed 42 \
+    --token $HF_TOKEN
+
+srun python DL4NLP/scripts/make_dataset.py \
+    --model $MODEL \
+    --split valid \
+    --folder_path data \
+    --seed 42 \
+    --token $HF_TOKEN
+
+srun python DL4NLP/scripts/make_dataset.py \
+    --model $MODEL \
+    --split test \
+    --folder_path data \
     --seed 42 \
     --token $HF_TOKEN

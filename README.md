@@ -25,7 +25,7 @@ conda activate $ENV_NAME
 # Install the requirements from the requirements.txt file
 echo "Installing requirements from requirements.txt..."
 pip install -r ../requirements.txt # TODO change path of requirements
-pip install transformers torch accelerate huggingface_hub datasets
+# pip install transformers torch accelerate huggingface_hub datasets
 
 # Done
 echo "Conda environment '$ENV_NAME' created and packages installed."
@@ -63,7 +63,7 @@ srun python scripts/small_language_models.py \
 ```
 ## Compatible Models
 ```
-meta-llama/Meta-Llama-3-8B-Instruct
+meta-llama/Meta-Llama-3.1-8B-Instruct
 ```
 
 ```

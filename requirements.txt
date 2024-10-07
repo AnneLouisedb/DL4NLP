@@ -7,3 +7,7 @@ transformers
 safetensors
 scikit-learn
 sentencepiece
+transformers 
+accelerate 
+huggingface_hub 
+datasets
