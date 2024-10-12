@@ -62,7 +62,7 @@ srun python scripts/small_language_models.py \
     --return_scores True
 ```
 
-Run the interpretability methods implemented `interp.py` with the following script:
+Run the interpretability methods implemented in `interp.py` with the following script:
 
 ```bash
 DETECTMODEL="llama"
