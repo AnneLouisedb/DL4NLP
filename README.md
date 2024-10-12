@@ -70,7 +70,7 @@ MODEL="llama"
 HF_TOKEN=YOUR_HF_TOKEN
 srun python interp.py \
     --model_name $MODEL \
-    --hf_token $HF_TOKEN \
+    --hf_token HUGGINGFACE_TOKEN \
     --split "mini" \
     --mask_model 'T5-small' \
     --n_perturbations 5 \
