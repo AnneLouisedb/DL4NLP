@@ -61,6 +61,25 @@ srun python scripts/small_language_models.py \
     --denoise_with_llm False \
     --return_scores True
 ```
+
+Run the interpretability methods implemented `interp.py` with the following script:
+
+```bash
+DETECTMODEL="llama"
+MODEL="llama"
+HF_TOKEN=YOUR_HF_TOKEN
+srun python interp.py \
+    --model_name $MODEL \
+    --hf_token $HF_TOKEN \
+    --split "mini" \
+    --mask_model 'T5-small' \
+    --n_perturbations 5 \
+    --detector_model $DETECTMODEL \
+    --interp "sentence" \
+    --attribution "ablation" \
+    --text "Animals do not tan like humans do. They have a different skin structure that protects them from the sun's UV rays. Some animals, like bears, have thick fur that protects them, while others, like reptiles, have scales that help reflect the sun's rays. ELI5 stands for Explain Like I'm 5. It's a way to explain complex ideas in simple terms. In this case, it's asking if animals get a tan like humans do. The answer is no, but it's explained in a way that a 5-year-old can understand. ELI5 is a helpful tool for parents, teachers, and anyone who wants to explain complex ideas in a way that's easy to understand. ELI5 is a helpful tool for parents, teachers, and anyone who wants to explain complex ideas in a way that's easy to understand. It's a way to make learning fun and accessible for everyone. ELI5 is a helpful tool for parents, teachers, and anyone who wants to explain complex ideas in a way that's easy to understand. It's a way to make learning fun and accessible for everyone. ELI5 is a helpful tool for parents, teachers, and anyone who wants to explain complex ideas in a way that's easy to understand" 
+```
+
 ## Compatible Models
 ```
 meta-llama/Meta-Llama-3.1-8B-Instruct
