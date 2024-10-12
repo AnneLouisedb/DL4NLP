@@ -1,0 +1,34 @@
+#!/bin/bash
+
+#SBATCH \--partition=gpu
+#SBATCH \--gpus=1
+#SBATCH \--job-name=INTERP
+#SBATCH \--ntasks=1
+#SBATCH \--cpus-per-task=18
+#SBATCH \--time=04:00:00
+#SBATCH \--output=slurms/slurm_%A.out
+
+module purge
+module load 2022
+module load Anaconda3/2022.05
+
+ENV_NAME="DL4NLP"
+PYTHON_VERSION="3.10"
+
+# Activate the new environment
+echo "Activating the environment $ENV_NAME"
+source "$(conda info \--base)/etc/profile.d/conda.sh"
+conda activate $ENV_NAME
+
+echo "Running interp.py"
+
+DETECTMODEL="llama"
+MODEL="llama"
+
+srun python interp.py \
+    --model_name $MODEL \
+    --split "mini" \
+    --mask_model 'T5-small' \
+    --n_perturbations 5 \
+    --detector_model $DETECTMODEL \
+    --text "The cat sat on the mat." 
