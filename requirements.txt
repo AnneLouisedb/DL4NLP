@@ -11,3 +11,5 @@ transformers
 accelerate 
 huggingface_hub 
 datasets
+re
+captum
