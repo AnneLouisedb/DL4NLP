@@ -52,27 +52,6 @@ def get_ll(model, tokenizer, text):
         print(f"RuntimeError occurred: {e}")
         return None
 
-# def get_ll(llm: Llama, text: str):
-#     """Calculate the log-likelihood of the given text using the Llama model.
-#        If a runtime error occurs during evaluation, return None or an alternative value."""
-#     try:
-#         tokenized_text = llm.tokenizer().encode(text)
-#         llm.reset()
-#         llm.eval(tokenized_text)  # runtime error might occur here
-#         logits = np.array(llm._scores)
-#         softmax_logits = softmax(logits)
-#         log_likelihood = 0.0
-#         for i, token_id in enumerate(tokenized_text):
-#             prob = softmax_logits[i, token_id]
-#             log_likelihood += np.log(prob)
-
-#         return log_likelihood
-
-#     except RuntimeError as e:
-#         # Handle the RuntimeError (e.g., return None or log the error)
-#         print(f"RuntimeError occurred: {e}")
-#         return None  # You can return a default value or some other indicator
-
 
 def get_lls(llm, tokenizer, texts: [str], disable_tqdm):
 
@@ -84,7 +63,7 @@ def get_lls(llm, tokenizer, texts: [str], disable_tqdm):
 
     ):  
         assert isinstance(text[0], str), f"texts must be a string {text[0]}"
-        lls.append(get_ll(llm, tokenizer, text[0])) # this has to be a string
+        lls.append(get_ll(llm, tokenizer, text))
     return lls
 
 
